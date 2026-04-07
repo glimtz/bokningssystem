@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+*.local
+.env
+.env.*
+
+# Editor
+.vscode/
+.idea/
+*.sw?
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Package lock (use booking-frontend/package-lock.json instead)
+package-lock.json

@@ -1,0 +1,187 @@
+# Handoff — Bokningssystem Vilhelmina Lodge
+
+> Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
+> på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
+> Senast uppdaterad: 2026-04-09
+
+---
+
+## 1. Projektöversikt
+
+Bokningssystem för **Vilhelmina Lodge** (Flightmode Adventures AB). En fiskelodge i Vilhelmina.
+Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs bokningsformulär, sparar i databas, och skickar automatiska mail.
+
+- **GitHub-repo:** https://github.com/glimtz/bokningssystem
+- **Supabase-projekt:** mqarsrzwwttgccwiwkir
+- **Supabase URL:** https://mqarsrzwwttgccwiwkir.supabase.co
+- **Ägare:** Leif Gyllenberg (leif.gyllenberg@gmail.com)
+
+## 2. Techstack
+
+| Lager | Teknologi |
+|-------|-----------|
+| Frontend | React 19 + Vite 8 (single-page booking wizard) |
+| Backend/DB | Supabase (PostgreSQL 15+ med RLS) |
+| E-post | Supabase Edge Function + Loopia SMTP (denomailer) |
+| Hosting | Ännu ej deployad — körs lokalt med `npm run dev` |
+| Repo | GitHub (glimtz/bokningssystem) |
+
+## 3. Git-historik
+
+```
+9ef1729 feat: add booking email notifications via Loopia SMTP
+7b40699 feat: connect frontend to Supabase with live booking flow
+a03bc3b feat: add Supabase database schema for booking system
+e59ba88 feat: booking request system for Vilhelmina Lodge
+```
+
+## 4. Mappstruktur
+
+```
+Bokningssystem/
+├── Claude.md                          # Leifs profil och preferenser för Claude
+├── HANDOFF.md                         # Denna fil
+├── kravspec-bokningssystem.md         # Kravspecifikation
+├── databasschema.md                   # Databasdesign-dokumentation
+├── flightmode-adventures.md           # Företagsbeskrivning
+├── .gitignore
+├── booking-frontend/
+│   ├── .env                           # Supabase-credentials (INTE i git)
+│   ├── .env.example                   # Mall för .env
+│   ├── package.json                   # React 19, Vite 8, supabase-js
+│   ├── vite.config.js
+│   ├── index.html
+│   ├── public/
+│   │   ├── favicon.svg
+│   │   └── icons.svg
+│   ├── src/
+│   │   ├── main.jsx                   # Entry point
+│   │   ├── BookingApp.jsx             # Huvudkomponent — 925 rader, 4-stegs wizard
+│   │   ├── api.js                     # Supabase API-funktioner
+│   │   ├── supabaseClient.js          # Supabase-klient init
+│   │   ├── App.jsx / App.css          # Äldre filer (används ej aktivt)
+│   │   ├── index.css
+│   │   ├── components/                # Äldre komponentstruktur
+│   │   ├── context/
+│   │   ├── data/
+│   │   └── i18n/                      # Översättningar (en, sv, de, fr)
+│   └── dist/                          # Build-output
+└── supabase/
+    ├── migrations/
+    │   └── 001_initial_schema.sql     # Databas-schema (10 tabeller, RLS, seed data)
+    └── functions/
+        └── send-booking-emails/
+            └── index.ts               # Edge Function — SMTP-mail vid ny bokning
+```
+
+## 5. Lokal setup (vad du behöver installera på basecampOne)
+
+### 5.1 Förutsättningar
+- **Node.js** (LTS) — https://nodejs.org — ger dig `npm`
+- **Git** — för att klona repot
+
+### 5.2 Klona och installera
+
+```bash
+cd Documents\Claude\Flightmode Adventures
+git clone https://github.com/glimtz/bokningssystem.git Bokningssystem
+cd Bokningssystem\booking-frontend
+npm install
+```
+
+### 5.3 Skapa .env-fil
+
+Skapa filen `booking-frontend/.env` med:
+
+```
+VITE_SUPABASE_URL=https://mqarsrzwwttgccwiwkir.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xYXJzcnp3d3R0Z2Njd2l3a2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NzUxNjQsImV4cCI6MjA5MTE1MTE2NH0.CmI70NyaYr1NWzjpgAndMbeGvqab-LXiq0NIgX1kusE
+```
+
+### 5.4 Starta dev-server
+
+```bash
+cd booking-frontend
+npm run dev
+```
+
+Öppna http://localhost:5173
+
+## 6. Supabase-konfiguration (redan uppsatt i molnet)
+
+### 6.1 Databas (PostgreSQL)
+- 10 tabeller: seasons, pricing_periods, blocked_dates, addons, guests, bookings, booking_addons, payments, email_log, settings
+- RLS aktiverat på alla tabeller
+- Bokningsreferens auto-genereras via trigger (VL-2026-001, VL-2026-002, ...)
+- Secret token per bokning för gäståtkomst
+
+### 6.2 RLS-fixar (applicerade direkt i SQL Editor, EJ i migrationsfilen)
+Migrationsfilen (001_initial_schema.sql) har fortfarande de gamla RLS-policyerna.
+Följande fixar gjordes direkt i Supabase SQL Editor:
+
+**Problem 1:** `FOR ALL`-policies blockerade anon INSERT p.g.a. att USING-villkoret ärvdes till with_check.
+**Fix:** Droppade ALL-policies för guests/bookings/booking_addons och skapade separata SELECT/UPDATE/DELETE/INSERT-policies för admin.
+
+**Problem 2:** `INSERT...RETURNING` (supabase-js `.insert().select()`) kräver både INSERT och SELECT policy.
+**Fix:** La till SELECT-policies med `USING (true)` för anon på guests, bookings, booking_addons.
+
+**OBS:** Dessa fixar bör synkas tillbaka till migrationsfilen för att hålla den konsekvent.
+
+### 6.3 Edge Function — send-booking-emails
+- Deployad i Supabase
+- Triggas via Database Webhook på `bookings` INSERT
+- Skickar 2 mail: gästbekräftelse (4 språk) + admin-notis till info@flightmode.se
+- Använder Loopia SMTP via denomailer
+
+### 6.4 Supabase Secrets (satta via CLI)
+```
+SMTP_HOST = mailcluster.loopia.se
+SMTP_PORT = 465
+SMTP_USER = leif.gyllenberg@glimtz.se
+SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
+```
+
+### 6.5 Database Webhook
+- Name: send-booking-emails
+- Table: bookings
+- Event: INSERT
+- Type: Supabase Edge Function → send-booking-emails
+
+## 7. Bokningsflöde (end-to-end)
+
+1. Gäst öppnar bokningsformuläret (localhost:5173 / framtida URL)
+2. **Steg 1 — Datum:** Väljer check-in/check-out i kalender
+3. **Steg 2 — Tillval:** Båt, guide, sänglinne, städning
+4. **Steg 3 — Kontakt:** Namn, e-post, telefon, meddelande, GDPR-samtycke
+5. **Steg 4 — Sammanfattning:** Ser priser, bekräftar
+6. Frontend anropar `createBookingRequest()` i api.js → skapar guest + booking + booking_addons i Supabase
+7. Database webhook triggar Edge Function
+8. Edge Function hämtar gäst + addons, bygger HTML-mail, skickar via Loopia SMTP
+9. Gästen ser bekräftelsesida med referensnummer (t.ex. VL-2026-003)
+10. Två mail skickas: gästbekräftelse + admin-notis
+
+## 8. Kända problem och teknisk skuld
+
+- [ ] **Migrationsfilen är inte synkad** — RLS-fixar gjordes direkt i SQL Editor, migrationsfilen har gamla policies
+- [ ] **SMTP-lösenord bör bytas** — exponerades i chatt-session
+- [ ] **FROM-adress:** Mail skickas från `leif.gyllenberg@glimtz.se` istället för `info@flightmode.se` (Loopia kräver att avsändaren matchar SMTP-kontot). Lösning: sätt upp separat SMTP för info@flightmode.se
+- [ ] **Ej deployad publikt** — körs bara lokalt, behöver hosting (Vercel, Netlify, eller Loopia)
+- [ ] **Ingen admin-dashboard** — bokningar hanteras direkt i Supabase Dashboard
+- [ ] **Inga betalningar** — Stripe/Swish-integration planerad men ej byggd
+- [ ] **Resend-konto skapat** — API-nyckel `re_LP31SecW_...` finns men används inte (vi gick med Loopia SMTP). Kan avaktiveras.
+
+## 9. Planerade nästa steg
+
+1. **Admin-dashboard** — godkänn/neka bokningar, se kalender, hantera säsonger
+2. **Deploya frontend** — publikt på en riktig URL
+3. **Betalningsintegration** — Stripe för deposition
+4. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
+5. **Synka migrationsfil** — uppdatera 001_initial_schema.sql med RLS-fixarna
+
+## 10. Språk och preferenser
+
+- Konversation: **Svenska**
+- Kod och tekniska termer: **Engelska**
+- Tonalitet: Professionellt men avslappnat
+- Leif är på mellannivå inom programmering — förklara tekniska val kort men tydligt
+- Se Claude.md i repo-roten för full profil

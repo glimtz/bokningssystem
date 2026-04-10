@@ -122,7 +122,7 @@ interface BookingData {
   guest_name: string;
   guest_email: string;
   guest_language: string;
-  addons: Array<{ name: string; quantity: number; total_price: number }>;
+  addons: Array<{ name: string; quantity: number; total_price: number; selected_dates: string[] | null }>;
 }
 
 function formatDate(dateStr: string): string {
@@ -130,6 +130,14 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString("sv-SE", {
     year: "numeric",
     month: "long",
+    day: "numeric",
+  });
+}
+
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("sv-SE", {
+    month: "short",
     day: "numeric",
   });
 }
@@ -144,19 +152,35 @@ function formatSEK(amount: number): string {
   return new Intl.NumberFormat("sv-SE").format(amount) + " SEK";
 }
 
+function buildAddonRows(addons: BookingData["addons"]): string {
+  if (addons.length === 0) return "";
+  return addons.map((a) => {
+    let row = `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${a.name}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${formatSEK(a.total_price)}</td></tr>`;
+    if (a.selected_dates && a.selected_dates.length > 0) {
+      const datesStr = a.selected_dates.map((d) => formatDateShort(d)).join(", ");
+      row += `<tr><td colspan="2" style="padding:2px 12px 8px;color:#888;font-size:12px;font-style:italic;border-bottom:1px solid #eee">\u2192 ${datesStr}</td></tr>`;
+    }
+    return row;
+  }).join("");
+}
+
+function buildAdminAddonRows(addons: BookingData["addons"]): string {
+  if (addons.length === 0) return "<tr><td style='padding:6px 12px;color:#999' colspan='2'>Inga tillval</td></tr>";
+  return addons.map((a) => {
+    let row = `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${a.name} (x${a.quantity})</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${formatSEK(a.total_price)}</td></tr>`;
+    if (a.selected_dates && a.selected_dates.length > 0) {
+      const datesStr = a.selected_dates.map((d) => formatDateShort(d)).join(", ");
+      row += `<tr><td colspan="2" style="padding:2px 12px 8px;color:#888;font-size:12px;font-style:italic;border-bottom:1px solid #eee">\u2192 ${datesStr}</td></tr>`;
+    }
+    return row;
+  }).join("");
+}
+
 function buildGuestEmailHtml(data: BookingData): string {
   const lang = data.guest_language || "en";
   const t = translations[lang] || translations.en;
   const nights = countNights(data.check_in, data.check_out);
-
-  const addonsRows = data.addons.length > 0
-    ? data.addons
-        .map(
-          (a) =>
-            `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${a.name}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${formatSEK(a.total_price)}</td></tr>`
-        )
-        .join("")
-    : "";
+  const addonsRows = buildAddonRows(data.addons);
 
   return `<!DOCTYPE html>
 <html lang="${lang}">
@@ -225,15 +249,7 @@ function buildGuestEmailHtml(data: BookingData): string {
 
 function buildAdminEmailHtml(data: BookingData): string {
   const nights = countNights(data.check_in, data.check_out);
-
-  const addonsRows = data.addons.length > 0
-    ? data.addons
-        .map(
-          (a) =>
-            `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${a.name} (x${a.quantity})</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${formatSEK(a.total_price)}</td></tr>`
-        )
-        .join("")
-    : "<tr><td style='padding:6px 12px;color:#999' colspan='2'>Inga tillval</td></tr>";
+  const addonsRows = buildAdminAddonRows(data.addons);
 
   return `<!DOCTYPE html>
 <html lang="sv">
@@ -363,7 +379,7 @@ serve(async (req) => {
 
     const lang = guest.language || "en";
 
-    // Map addons to localized names
+    // Map addons to localized names, include selected_dates
     const addonsList = (bookingAddons || []).map((ba: any) => ({
       name:
         ba.addons?.translations?.[lang]?.name ||
@@ -372,6 +388,7 @@ serve(async (req) => {
         "Add-on",
       quantity: ba.quantity,
       total_price: ba.total_price,
+      selected_dates: ba.selected_dates || null,
     }));
 
     const bookingData: BookingData = {

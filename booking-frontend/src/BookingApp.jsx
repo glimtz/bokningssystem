@@ -435,7 +435,9 @@ const bookingReducer = (state, action) => {
     }
     case 'SET_ADDON_DAYS': {
       const { addonId, days } = action.payload, addon = state.addons[addonId], update = { ...addon, days };
-      if (addonId === 'guide' || addonId === 'boat') update.selectedDates = [];
+      if ((addonId === 'guide' || addonId === 'boat') && addon.selectedDates) {
+        update.selectedDates = addon.selectedDates.slice(0, days);
+      }
       return { ...state, addons: { ...state.addons, [addonId]: update } };
     }
     case 'SET_ADDON_DATES': { const { addonId, dates } = action.payload; return { ...state, addons: { ...state.addons, [addonId]: { ...state.addons[addonId], selectedDates: dates } } }; }

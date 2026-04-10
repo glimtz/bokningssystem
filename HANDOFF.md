@@ -2,7 +2,7 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-04-09
+> Senast uppdaterad: 2026-04-10
 
 ---
 
@@ -14,6 +14,7 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 - **GitHub-repo:** https://github.com/glimtz/bokningssystem
 - **Supabase-projekt:** mqarsrzwwttgccwiwkir
 - **Supabase URL:** https://mqarsrzwwttgccwiwkir.supabase.co
+- **Vercel URL:** https://vilhelmina-lodge.vercel.app
 - **Ägare:** Leif Gyllenberg (leif.gyllenberg@gmail.com)
 
 ## 2. Techstack
@@ -23,12 +24,14 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 | Frontend | React 19 + Vite 8 (single-page booking wizard) |
 | Backend/DB | Supabase (PostgreSQL 15+ med RLS) |
 | E-post | Supabase Edge Function + Loopia SMTP (denomailer) |
-| Hosting | Ännu ej deployad — körs lokalt med `npm run dev` |
+| Hosting | **Vercel** (https://vilhelmina-lodge.vercel.app) |
 | Repo | GitHub (glimtz/bokningssystem) |
 
 ## 3. Git-historik
 
 ```
+c1d7cd7 feat: UI improvements and boat date picker
+301473e docs: add handoff file for multi-machine development
 9ef1729 feat: add booking email notifications via Loopia SMTP
 7b40699 feat: connect frontend to Supabase with live booking flow
 a03bc3b feat: add Supabase database schema for booking system
@@ -48,6 +51,7 @@ Bokningssystem/
 ├── booking-frontend/
 │   ├── .env                           # Supabase-credentials (INTE i git)
 │   ├── .env.example                   # Mall för .env
+│   ├── .vercel/                       # Vercel-konfiguration (INTE i git)
 │   ├── package.json                   # React 19, Vite 8, supabase-js
 │   ├── vite.config.js
 │   ├── index.html
@@ -56,7 +60,7 @@ Bokningssystem/
 │   │   └── icons.svg
 │   ├── src/
 │   │   ├── main.jsx                   # Entry point
-│   │   ├── BookingApp.jsx             # Huvudkomponent — 925 rader, 4-stegs wizard
+│   │   ├── BookingApp.jsx             # Huvudkomponent — ~930 rader, 4-stegs wizard
 │   │   ├── api.js                     # Supabase API-funktioner
 │   │   ├── supabaseClient.js          # Supabase-klient init
 │   │   ├── App.jsx / App.css          # Äldre filer (används ej aktivt)
@@ -107,6 +111,25 @@ npm run dev
 
 Öppna http://localhost:5173
 
+### 5.5 Vercel-deploy (redan kopplat)
+
+Frontend är deployad på Vercel. Env-variabler (VITE_SUPABASE_URL och VITE_SUPABASE_ANON_KEY) är konfigurerade i Vercel. För att deploya ändringar:
+
+```bash
+cd booking-frontend
+npx vercel --prod
+```
+
+### 5.6 Supabase Edge Functions (deploy)
+
+För att deploya Edge Functions efter ändringar:
+
+```bash
+cd Bokningssystem
+npx supabase login
+npx supabase functions deploy send-booking-emails --project-ref mqarsrzwwttgccwiwkir
+```
+
 ## 6. Supabase-konfiguration (redan uppsatt i molnet)
 
 ### 6.1 Databas (PostgreSQL)
@@ -131,7 +154,9 @@ Följande fixar gjordes direkt i Supabase SQL Editor:
 - Deployad i Supabase
 - Triggas via Database Webhook på `bookings` INSERT
 - Skickar 2 mail: gästbekräftelse (4 språk) + admin-notis till info@flightmode.se
-- Använder Loopia SMTP via denomailer
+- Använder Loopia SMTP via denomailer (port 465, TLS)
+- Avsändare: `Vilhelmina Lodge <leif.gyllenberg@glimtz.se>`
+- Mail visar bokningsdetaljer, priser, valda dagar för båt/guide, och nästa steg
 
 ### 6.4 Supabase Secrets (satta via CLI)
 ```
@@ -149,36 +174,47 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 
 ## 7. Bokningsflöde (end-to-end)
 
-1. Gäst öppnar bokningsformuläret (localhost:5173 / framtida URL)
-2. **Steg 1 — Datum:** Väljer check-in/check-out i kalender
-3. **Steg 2 — Tillval:** Båt, guide, sänglinne, städning
-4. **Steg 3 — Kontakt:** Namn, e-post, telefon, meddelande, GDPR-samtycke
-5. **Steg 4 — Sammanfattning:** Ser priser, bekräftar
+1. Gäst öppnar https://vilhelmina-lodge.vercel.app
+2. **Steg 1 — Datum:** Väljer check-in/check-out i kalender, antal gäster
+3. **Steg 2 — Tillval:** Båt (med dagväljare), guide (med dagväljare), sänglinne, städning
+4. **Steg 3 — Kontakt:** Namn, e-post, telefon, meddelande, GDPR-samtycke, marknadsföringssamtycke
+5. **Steg 4 — Sammanfattning:** Ser priser, valda dagar för båt/guide, bekräftar
 6. Frontend anropar `createBookingRequest()` i api.js → skapar guest + booking + booking_addons i Supabase
 7. Database webhook triggar Edge Function
-8. Edge Function hämtar gäst + addons, bygger HTML-mail, skickar via Loopia SMTP
+8. Edge Function hämtar gäst + addons (med selected_dates), bygger HTML-mail, skickar via Loopia SMTP
 9. Gästen ser bekräftelsesida med referensnummer (t.ex. VL-2026-003)
-10. Två mail skickas: gästbekräftelse + admin-notis
+10. Två mail skickas: gästbekräftelse (på gästens språk) + admin-notis till info@flightmode.se
+11. Mailen visar valda dagar för båt och guide (t.ex. "→ 15 maj, 17 maj")
 
-## 8. Kända problem och teknisk skuld
+## 8. UI-detaljer (senaste fixar)
+
+- **Språkväljare:** Emoji-flaggor på Mac/iOS/Android, text-fallback (EN/SV/DE/FR) på Windows
+- **Stepper:** Visar stegnamn (Dates, Extras, Contact, Summary) på alla skärmstorlekar
+- **Kalender:** Responsiv — fungerar på smala mobiler (Samsung Flip-5) utan avklippta dagar
+- **Lodge-kort:** Feature-taggar med ✓-ikon (visar att alla stugor ingår)
+- **Båt-tillval:** Har dagväljare precis som guide (välj antal dagar → välj vilka dagar)
+- **Checkbox-spacing:** Tydligt mellanrum mellan GDPR/marknadsförings-checkboxar och formulärfält
+
+## 9. Kända problem och teknisk skuld
 
 - [ ] **Migrationsfilen är inte synkad** — RLS-fixar gjordes direkt i SQL Editor, migrationsfilen har gamla policies
 - [ ] **SMTP-lösenord bör bytas** — exponerades i chatt-session
-- [ ] **FROM-adress:** Mail skickas från `leif.gyllenberg@glimtz.se` istället för `info@flightmode.se` (Loopia kräver att avsändaren matchar SMTP-kontot). Lösning: sätt upp separat SMTP för info@flightmode.se
-- [ ] **Ej deployad publikt** — körs bara lokalt, behöver hosting (Vercel, Netlify, eller Loopia)
+- [ ] **FROM-adress:** Mail skickas från `leif.gyllenberg@glimtz.se` istället för `info@flightmode.se` (Loopia kräver att avsändaren matchar SMTP-kontot). Lösning: sätt upp separat SMTP för info@flightmode.se i Loopia
 - [ ] **Ingen admin-dashboard** — bokningar hanteras direkt i Supabase Dashboard
 - [ ] **Inga betalningar** — Stripe/Swish-integration planerad men ej byggd
-- [ ] **Resend-konto skapat** — API-nyckel `re_LP31SecW_...` finns men används inte (vi gick med Loopia SMTP). Kan avaktiveras.
+- [ ] **Resend-konto skapat** — API-nyckel finns men används inte (vi gick med Loopia SMTP). Kan avaktiveras.
+- [ ] **Vercel-deploy är manuell** — kräver `npx vercel --prod` från terminalen. Kan kopplas till GitHub för auto-deploy.
 
-## 9. Planerade nästa steg
+## 10. Planerade nästa steg
 
 1. **Admin-dashboard** — godkänn/neka bokningar, se kalender, hantera säsonger
-2. **Deploya frontend** — publikt på en riktig URL
-3. **Betalningsintegration** — Stripe för deposition
-4. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
-5. **Synka migrationsfil** — uppdatera 001_initial_schema.sql med RLS-fixarna
+2. **Koppla Vercel till GitHub** — auto-deploy vid push
+3. **Egen domän** — t.ex. booking.flightmode.se på Vercel
+4. **Betalningsintegration** — Stripe för deposition
+5. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
+6. **Synka migrationsfil** — uppdatera 001_initial_schema.sql med RLS-fixarna
 
-## 10. Språk och preferenser
+## 11. Språk och preferenser
 
 - Konversation: **Svenska**
 - Kod och tekniska termer: **Engelska**

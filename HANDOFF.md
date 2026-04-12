@@ -2,7 +2,7 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-04-10
+> Senast uppdaterad: 2026-04-12
 
 ---
 
@@ -30,6 +30,8 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 ## 3. Git-historik
 
 ```
+3a7e79b fix: preserve selected dates when changing addon day count
+fc3fcb5 docs: update handoff with Vercel deploy, UI fixes, boat date picker
 c1d7cd7 feat: UI improvements and boat date picker
 301473e docs: add handoff file for multi-machine development
 9ef1729 feat: add booking email notifications via Loopia SMTP
@@ -78,7 +80,7 @@ Bokningssystem/
             └── index.ts               # Edge Function — SMTP-mail vid ny bokning
 ```
 
-## 5. Lokal setup (vad du behöver installera på basecampOne)
+## 5. Lokal setup (ny dator)
 
 ### 5.1 Förutsättningar
 - **Node.js** (LTS) — https://nodejs.org — ger dig `npm`
@@ -117,7 +119,8 @@ Frontend är deployad på Vercel. Env-variabler (VITE_SUPABASE_URL och VITE_SUPA
 
 ```bash
 cd booking-frontend
-npx vercel --prod
+npx vercel login          # Krävs första gången på ny dator — öppnar webbläsaren
+npx vercel --prod         # Bygger och deployar till produktion
 ```
 
 ### 5.6 Supabase Edge Functions (deploy)
@@ -193,6 +196,7 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 - **Kalender:** Responsiv — fungerar på smala mobiler (Samsung Flip-5) utan avklippta dagar
 - **Lodge-kort:** Feature-taggar med ✓-ikon (visar att alla stugor ingår)
 - **Båt-tillval:** Har dagväljare precis som guide (välj antal dagar → välj vilka dagar)
+- **Dagväljare (båt/guide):** Vid ändring av antal dagar behålls redan valda dagar (trimmas om man minskar). Tidigare nollställdes alla val.
 - **Checkbox-spacing:** Tydligt mellanrum mellan GDPR/marknadsförings-checkboxar och formulärfält
 
 ## 9. Kända problem och teknisk skuld

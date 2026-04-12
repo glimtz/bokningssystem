@@ -1,0 +1,1 @@
+Sedan på basecampOne klonar du repot, skapar .env, kör npm install, och ger HANDOFF.md till Claude — så är ni igång direkt!

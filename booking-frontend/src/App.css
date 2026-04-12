@@ -1,0 +1,841 @@
+.booking-app {
+  min-height: 100vh;
+}
+
+.booking-header {
+  text-align: center;
+  padding: var(--space-2xl) 0 var(--space-xl);
+  border-bottom: 2px solid var(--fm-orange);
+  margin-bottom: var(--space-2xl);
+  position: relative;
+}
+
+/* Language Switcher */
+.language-switcher {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--fm-border);
+  border-radius: 20px;
+  background: var(--fm-white);
+  font-size: 0.8rem;
+  color: var(--fm-text-muted);
+  transition: all 0.2s;
+}
+
+.lang-btn:hover {
+  border-color: var(--fm-orange);
+  color: var(--fm-text);
+}
+
+.lang-btn.active {
+  background: var(--fm-orange);
+  border-color: var(--fm-orange);
+  color: var(--fm-white);
+}
+
+.lang-flag {
+  font-size: 1rem;
+}
+
+.lang-code {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.booking-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--fm-text);
+  letter-spacing: -0.5px;
+}
+
+.booking-tagline {
+  font-size: 1.1rem;
+  color: var(--fm-orange);
+  margin-top: var(--space-sm);
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Stepper */
+.stepper {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-2xl);
+  flex-wrap: wrap;
+}
+
+.stepper-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--fm-text-muted);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.stepper-step.active {
+  background: var(--fm-orange-light);
+  color: var(--fm-orange);
+}
+
+.stepper-step.completed {
+  color: var(--fm-olive);
+}
+
+.stepper-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid var(--fm-border);
+  background: var(--fm-white);
+  flex-shrink: 0;
+}
+
+.stepper-step.active .stepper-number {
+  border-color: var(--fm-orange);
+  background: var(--fm-orange);
+  color: var(--fm-white);
+}
+
+.stepper-step.completed .stepper-number {
+  border-color: var(--fm-olive);
+  background: var(--fm-olive);
+  color: var(--fm-white);
+}
+
+.stepper-label {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .stepper-label {
+    display: inline;
+  }
+}
+
+/* Step content */
+.step-container {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-title {
+  font-size: 1.75rem;
+  margin-bottom: var(--space-sm);
+  color: var(--fm-text);
+}
+
+.step-description {
+  color: var(--fm-text-muted);
+  margin-bottom: var(--space-xl);
+  font-size: 0.95rem;
+}
+
+/* Navigation buttons */
+.step-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--fm-border);
+}
+
+.btn {
+  padding: 0.75rem 1.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.btn-primary {
+  background: var(--fm-orange);
+  color: var(--fm-white);
+}
+
+.btn-primary:hover {
+  background: var(--fm-orange-hover);
+}
+
+.btn-primary:disabled {
+  background: var(--fm-border);
+  color: var(--fm-text-muted);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--fm-text-muted);
+  border: 1px solid var(--fm-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--fm-text-muted);
+  color: var(--fm-text);
+}
+
+/* Cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.card {
+  background: var(--fm-bg-card);
+  border: 2px solid var(--fm-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.card:hover {
+  border-color: var(--fm-orange);
+  box-shadow: 0 4px 12px rgba(227, 138, 5, 0.1);
+}
+
+.card.selected {
+  border-color: var(--fm-orange);
+  background: var(--fm-orange-light);
+}
+
+.card-title {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.card-description {
+  color: var(--fm-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
+}
+
+.card-price {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--fm-orange);
+}
+
+.card-price span {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--fm-text-muted);
+}
+
+.card-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.highlight-tag {
+  background: var(--fm-bg);
+  color: var(--fm-dark-green);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.card.selected .highlight-tag {
+  background: var(--fm-white);
+}
+
+/* Lodge card */
+.lodge-card {
+  background: var(--fm-bg-card);
+  border: 2px solid var(--fm-orange);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.lodge-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.lodge-card-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.lodge-price {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--fm-orange);
+}
+
+.lodge-price span {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--fm-text-muted);
+}
+
+.lodge-min-price {
+  font-size: 0.8rem;
+  color: var(--fm-text-muted);
+  margin-bottom: var(--space-sm);
+  font-style: italic;
+}
+
+.lodge-description {
+  color: var(--fm-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
+}
+
+.lodge-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.lodge-max {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fm-dark-green);
+  background: rgba(86, 140, 3, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+/* Guest count in dates step */
+.guest-count-section {
+  background: var(--fm-bg-card);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg) var(--space-xl);
+  margin-bottom: var(--space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guest-count-label {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--fm-text);
+}
+
+/* Calendar */
+.calendar-container {
+  background: var(--fm-bg-card);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.calendar-month {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.calendar-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--fm-border);
+  background: var(--fm-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--fm-text);
+  transition: all 0.2s;
+}
+
+.calendar-nav-btn:hover {
+  border-color: var(--fm-orange);
+  color: var(--fm-orange);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--fm-text-muted);
+  padding: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  border: none;
+  background: transparent;
+  color: var(--fm-text);
+  transition: all 0.15s;
+}
+
+.calendar-day:hover:not(.disabled):not(.empty) {
+  background: var(--fm-orange-light);
+  color: var(--fm-orange);
+}
+
+.calendar-day.selected {
+  background: var(--fm-orange);
+  color: var(--fm-white);
+  font-weight: 600;
+}
+
+.calendar-day.in-range {
+  background: var(--fm-orange-light);
+  color: var(--fm-orange);
+  border-radius: 0;
+}
+
+.calendar-day.range-start {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.calendar-day.range-end {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.calendar-day.disabled {
+  color: var(--fm-border);
+  cursor: not-allowed;
+}
+
+.calendar-day.empty {
+  cursor: default;
+}
+
+.calendar-day.today {
+  font-weight: 700;
+  border: 2px solid var(--fm-orange);
+}
+
+.date-selection-info {
+  display: flex;
+  gap: var(--space-xl);
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--fm-orange-light);
+  border-radius: var(--radius-md);
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.date-selection-info strong {
+  color: var(--fm-orange);
+}
+
+/* Addon checkbox cards */
+.addon-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  background: var(--fm-bg-card);
+  border: 2px solid var(--fm-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addon-card:hover {
+  border-color: var(--fm-orange);
+}
+
+.addon-card.selected {
+  border-color: var(--fm-orange);
+  background: var(--fm-orange-light);
+}
+
+.addon-checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--fm-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s;
+}
+
+.addon-card.selected .addon-checkbox {
+  background: var(--fm-orange);
+  border-color: var(--fm-orange);
+  color: var(--fm-white);
+}
+
+.addon-info {
+  flex: 1;
+}
+
+.addon-name {
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.addon-description {
+  color: var(--fm-text-muted);
+  font-size: 0.85rem;
+  margin-bottom: var(--space-sm);
+}
+
+.addon-price {
+  color: var(--fm-orange);
+  font-weight: 600;
+}
+
+.addon-price span {
+  font-weight: 400;
+  color: var(--fm-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Addon day selector */
+.addon-card-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.addon-day-selector {
+  background: var(--fm-orange-light);
+  border: 2px solid var(--fm-orange);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.addon-card.selected {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.addon-card-wrapper .addon-card:not(.selected) {
+  border-radius: var(--radius-lg);
+}
+
+.addon-day-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--fm-text);
+}
+
+.day-counter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.day-counter button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--fm-border);
+  background: var(--fm-white);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--fm-text);
+}
+
+.day-counter button:hover:not(:disabled) {
+  border-color: var(--fm-orange);
+  color: var(--fm-orange);
+}
+
+.day-counter button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.day-count {
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+
+.addon-day-total {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--fm-orange);
+  font-size: 1rem;
+}
+
+/* Guide date picker */
+.guide-date-picker {
+  background: var(--fm-bg-card);
+  border: 2px solid var(--fm-orange);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.addon-day-selector + .guide-date-picker {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.addon-card-wrapper:has(.guide-date-picker) .addon-day-selector {
+  border-radius: 0;
+}
+
+.guide-date-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.guide-date-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--fm-border);
+  border-radius: var(--radius-md);
+  background: var(--fm-white);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--fm-text);
+  transition: all 0.2s;
+}
+
+.guide-date-btn:hover:not(.disabled) {
+  border-color: var(--fm-orange);
+  color: var(--fm-orange);
+}
+
+.guide-date-btn.chosen {
+  background: var(--fm-orange);
+  border-color: var(--fm-orange);
+  color: var(--fm-white);
+}
+
+.guide-date-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .form-grid .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--fm-text);
+  margin-bottom: var(--space-sm);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--fm-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  background: var(--fm-white);
+  color: var(--fm-text);
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--fm-orange);
+  box-shadow: 0 0 0 3px var(--fm-orange-light);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Summary */
+.summary-section {
+  background: var(--fm-bg-card);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-lg);
+}
+
+.summary-section h3 {
+  font-size: 0.85rem;
+  color: var(--fm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-md);
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+}
+
+.summary-row + .summary-row {
+  border-top: 1px solid var(--fm-border);
+}
+
+.summary-total {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--fm-orange);
+  padding-top: var(--space-md);
+  border-top: 2px solid var(--fm-orange);
+  margin-top: var(--space-md);
+  text-align: right;
+}
+
+.summary-total span {
+  color: var(--fm-text);
+  font-weight: 400;
+}
+
+/* Confirmation */
+.confirmation-box {
+  text-align: center;
+  padding: var(--space-2xl);
+}
+
+.confirmation-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-lg);
+}
+
+.confirmation-box h2 {
+  font-size: 1.75rem;
+  margin-bottom: var(--space-md);
+  color: var(--fm-olive);
+}
+
+.confirmation-box p {
+  color: var(--fm-text-muted);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* Guest counter */
+.guest-counter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.guest-counter button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--fm-border);
+  background: var(--fm-white);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--fm-text);
+}
+
+.guest-counter button:hover:not(:disabled) {
+  border-color: var(--fm-orange);
+  color: var(--fm-orange);
+}
+
+.guest-counter button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.guest-count {
+  font-size: 1.5rem;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+}

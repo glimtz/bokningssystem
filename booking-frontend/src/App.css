@@ -474,6 +474,12 @@
   border: 2px solid var(--fm-orange);
 }
 
+.calendar-day.booked {
+  background: #EDEAE3;
+  color: #A8A49B;
+  cursor: not-allowed;
+}
+
 .date-selection-info {
   display: flex;
   gap: var(--space-xl);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useState, useCallback, useEffect, useMemo } from 'react';
 import { createBookingRequest, getAddons as fetchAddons, getBlockedDates, getBookedDates, getSettings } from './api';
 
 const I18nContext = createContext();
@@ -6,10 +6,10 @@ const BookingContext = createContext();
 
 const translations = {
   en: {
-    header: { title: 'Vilhelmina Lodge', tagline: 'Northern Light Lodge' },
+    header: { title: 'Vilhelmina River Lodge', tagline: '' },
     stepper: { dates: 'Dates', addons: 'Extras', contact: 'Contact', summary: 'Summary' },
     lodge: {
-      name: 'Vilhelmina Lodge',
+      name: 'Vilhelmina River Lodge',
       description: 'Exclusive lodge by the Vojmån river, north of Vilhelmina. The lodge includes a main cabin, a sleeping cabin, a relaxation & sauna cabin, and a BBQ area.',
       perPersonPerNight: 'per person / night',
       minPrice: 'Minimum {{price}} SEK per night',
@@ -97,10 +97,10 @@ const translations = {
     },
   },
   sv: {
-    header: { title: 'Vilhelmina Lodge', tagline: 'Northern Light Lodge' },
+    header: { title: 'Vilhelmina River Lodge', tagline: '' },
     stepper: { dates: 'Datum', addons: 'Tillval', contact: 'Kontakt', summary: 'Sammanfattning' },
     lodge: {
-      name: 'Vilhelmina Lodge',
+      name: 'Vilhelmina River Lodge',
       description: 'Exklusiv lodge vid Vojmån, norr om Vilhelmina. Lodgen består av en storstuga, en sovstuga, en relax- och bastustuga samt grillplats.',
       perPersonPerNight: 'per person / natt',
       minPrice: 'Minimum {{price}} SEK per natt',
@@ -188,10 +188,10 @@ const translations = {
     },
   },
   de: {
-    header: { title: 'Vilhelmina Lodge', tagline: 'Northern Light Lodge' },
+    header: { title: 'Vilhelmina River Lodge', tagline: '' },
     stepper: { dates: 'Datum', addons: 'Extras', contact: 'Kontakt', summary: 'Zusammenfassung' },
     lodge: {
-      name: 'Vilhelmina Lodge',
+      name: 'Vilhelmina River Lodge',
       description: 'Exklusive Lodge am Fluss Vojmån, nördlich von Vilhelmina. Die Lodge umfasst eine Haupthütte, eine Schlafhütte, eine Entspannungs- & Saunahütte sowie einen Grillplatz.',
       perPersonPerNight: 'pro Person / Nacht',
       minPrice: 'Mindestpreis {{price}} SEK pro Nacht',
@@ -279,10 +279,10 @@ const translations = {
     },
   },
   fr: {
-    header: { title: 'Vilhelmina Lodge', tagline: 'Northern Light Lodge' },
+    header: { title: 'Vilhelmina River Lodge', tagline: '' },
     stepper: { dates: 'Dates', addons: 'Options', contact: 'Contact', summary: 'Résumé' },
     lodge: {
-      name: 'Vilhelmina Lodge',
+      name: 'Vilhelmina River Lodge',
       description: 'Lodge exclusive au bord de la rivière Vojmån, au nord de Vilhelmina. Le lodge comprend un chalet principal, un chalet de couchage, un chalet détente & sauna et un espace barbecue.',
       perPersonPerNight: 'par personne / nuit',
       minPrice: 'Minimum {{price}} SEK par nuit',
@@ -371,14 +371,37 @@ const translations = {
   },
 };
 
-const lodge = { name: 'Vilhelmina Lodge', maxGuests: 8, pricePerPersonPerNight: 950, minPricePerNight: 4000 };
-const getLodgePricePerNight = (gc) => Math.max(lodge.pricePerPersonPerNight * gc, lodge.minPricePerNight);
-const addons = [
-  { id: 'boat', name: 'Boat rental', price: 1000, type: 'perDay' },
-  { id: 'guide', name: 'Fishing guide', price: 8000, type: 'perDay' },
-  { id: 'linens', name: 'Bed linens & towels', price: 150, type: 'perPerson' },
-  { id: 'cleaning', name: 'Final cleaning', price: 1200, type: 'flat' },
-];
+// Default lodge config — overridden by settings from Supabase
+const defaultLodge = { name: 'Vilhelmina River Lodge', maxGuests: 8, pricePerPersonPerNight: 950, minPricePerNight: 4000 };
+
+// Helper to build lodge config from settings
+const getLodgeConfig = (settings) => ({
+  name: 'Vilhelmina River Lodge',
+  maxGuests: parseInt(settings.max_guests) || defaultLodge.maxGuests,
+  pricePerPersonPerNight: parseInt(settings.price_per_person_per_night) || defaultLodge.pricePerPersonPerNight,
+  minPricePerNight: parseInt(settings.min_price_per_night) || defaultLodge.minPricePerNight,
+});
+
+const getLodgePricePerNight = (gc, lodge) => Math.max(lodge.pricePerPersonPerNight * gc, lodge.minPricePerNight);
+
+// Helper to build addons list from DB addons (with fallback)
+const getAddonsList = (dbAddons) => {
+  if (!dbAddons || dbAddons.length === 0) {
+    return [
+      { id: 'boat', name: 'Boat rental', price: 1000, type: 'perDay' },
+      { id: 'guide', name: 'Fishing guide', price: 8000, type: 'perDay' },
+      { id: 'linens', name: 'Bed linens & towels', price: 150, type: 'perPerson' },
+      { id: 'cleaning', name: 'Final cleaning', price: 1200, type: 'flat' },
+    ];
+  }
+  const typeMap = { per_day: 'perDay', per_person: 'perPerson', flat: 'flat' };
+  return dbAddons.filter(a => a.is_active).map(a => ({
+    id: a.slug,
+    name: a.translations?.en?.name || a.slug,
+    price: a.price,
+    type: typeMap[a.price_type] || a.price_type,
+  }));
+};
 
 const useI18n = () => {
   const ctx = useContext(I18nContext);
@@ -488,6 +511,7 @@ const BookingProvider = ({ children }) => {
 const StepDates = () => {
   const { state, dispatch } = useBooking();
   const { t } = useI18n();
+  const lodge = getLodgeConfig(state.settings);
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth() >= 4 ? today.getMonth() : 4);
@@ -498,12 +522,50 @@ const StepDates = () => {
   const isSameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const formatDate = (date) => !date ? '—' : `${date.getDate()} ${months[date.getMonth()]}`;
 
+  // Build a Set of blocked dates (check_in through check_out, inclusive).
+  // check_out day is also blocked — lodge needs cleaning before next check-in.
+  const bookedNights = useMemo(() => {
+    const nights = new Set();
+    (state.bookedDates || []).forEach(({ check_in, check_out }) => {
+      const start = new Date(check_in + 'T00:00:00');
+      const end = new Date(check_out + 'T00:00:00');
+      const d = new Date(start);
+      while (d <= end) {
+        nights.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+        d.setDate(d.getDate() + 1);
+      }
+    });
+    return nights;
+  }, [state.bookedDates]);
+
+  const isBookedNight = (date) => bookedNights.has(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
+
+  // Check if a range from checkIn to a candidate checkOut crosses any booked night
+  const rangeHasConflict = (from, to) => {
+    const d = new Date(from);
+    d.setDate(d.getDate() + 1); // first night after check-in
+    while (d < to) {
+      if (isBookedNight(d)) return true;
+      d.setDate(d.getDate() + 1);
+    }
+    return false;
+  };
+
   const handleDayClick = (day) => {
     const clicked = new Date(viewYear, viewMonth, day);
     if (!checkIn || (checkIn && checkOut)) {
+      // Selecting check-in: allowed if the night is not booked
+      if (isBookedNight(clicked)) return;
       dispatch({ type: 'SET_DATES', payload: { checkIn: clicked, checkOut: null } });
     } else {
-      dispatch({ type: 'SET_DATES', payload: clicked > checkIn ? { checkIn, checkOut: clicked } : { checkIn: clicked, checkOut: null } });
+      if (clicked > checkIn) {
+        // Selecting check-out: reject if range crosses booked nights
+        if (rangeHasConflict(checkIn, clicked)) return;
+        dispatch({ type: 'SET_DATES', payload: { checkIn, checkOut: clicked } });
+      } else {
+        if (isBookedNight(clicked)) return;
+        dispatch({ type: 'SET_DATES', payload: { checkIn: clicked, checkOut: null } });
+      }
     }
   };
 
@@ -512,6 +574,7 @@ const StepDates = () => {
     const date = new Date(viewYear, viewMonth, day), classes = ['calendar-day'];
     if (isSameDay(date, today)) classes.push('today');
     if (date < today || date.getMonth() < 4 || date.getMonth() > 8) { classes.push('disabled'); return classes.join(' '); }
+    if (isBookedNight(date)) { classes.push('booked'); return classes.join(' '); }
     if (isSameDay(date, checkIn)) { classes.push('selected'); if (checkOut) classes.push('range-start'); } else if (isSameDay(date, checkOut)) {
       classes.push('selected', 'range-end');
     } else if (checkIn && checkOut && date > checkIn && date < checkOut) { classes.push('in-range'); }
@@ -559,8 +622,15 @@ const StepDates = () => {
           {weekdays.map((day) => (<div key={day} className="calendar-weekday">{day}</div>))}
           {Array.from({ length: firstDay }).map((_, i) => (<div key={`empty-${i}`} className="calendar-day empty" />))}
           {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1, date = new Date(viewYear, viewMonth, day), isDisabled = date < today || date.getMonth() < 4 || date.getMonth() > 8;
-            return <button key={day} className={getDayClass(day)} onClick={() => !isDisabled && handleDayClick(day)} disabled={isDisabled}>{day}</button>;
+            const day = i + 1, date = new Date(viewYear, viewMonth, day);
+            const isOutOfSeason = date < today || date.getMonth() < 4 || date.getMonth() > 8;
+            const isBooked = isBookedNight(date);
+            const bookedStyle = isBooked ? {
+              background: '#EDEAE3',
+              color: '#A8A49B',
+              cursor: 'not-allowed',
+            } : undefined;
+            return <button key={day} className={getDayClass(day)} style={bookedStyle} onClick={() => !isOutOfSeason && !isBooked && handleDayClick(day)} disabled={isOutOfSeason}>{day}</button>;
           })}
         </div>
         {(checkIn || checkOut) && (
@@ -570,7 +640,7 @@ const StepDates = () => {
             {nightCount > 0 && (
               <>
                 <div><strong>{t('dates.nights', { count: nightCount })}</strong></div>
-                <div><strong>{new Intl.NumberFormat('sv-SE').format(getLodgePricePerNight(state.guests.count) * nightCount)} SEK</strong></div>
+                <div><strong>{new Intl.NumberFormat('sv-SE').format(getLodgePricePerNight(state.guests.count, lodge) * nightCount)} SEK</strong></div>
               </>
             )}
           </div>
@@ -587,6 +657,7 @@ const StepDates = () => {
 const StepAddons = () => {
   const { state, dispatch } = useBooking();
   const { t } = useI18n();
+  const addons = getAddonsList(state.dbAddons);
   const nightCount = state.dates.checkIn && state.dates.checkOut ? Math.round((state.dates.checkOut - state.dates.checkIn) / (1000 * 60 * 60 * 24)) : 0;
   const guestCount = state.guests.count;
   const formatPrice = (price) => new Intl.NumberFormat('sv-SE').format(price) + ' SEK';
@@ -725,6 +796,8 @@ const StepContact = () => {
 const StepSummary = () => {
   const { state, dispatch } = useBooking();
   const { t, lang } = useI18n();
+  const lodge = getLodgeConfig(state.settings);
+  const addons = getAddonsList(state.dbAddons);
   const [submitted, setSubmitted] = useState(false), [sending, setSending] = useState(false);
   const months = t('dates.months'), selectedAddons = addons.filter((a) => state.addons[a.id]?.selected), guestCount = state.guests.count;
   const nightCount = state.dates.checkIn && state.dates.checkOut ? Math.round((state.dates.checkOut - state.dates.checkIn) / (1000 * 60 * 60 * 24)) : 0;
@@ -738,7 +811,7 @@ const StepSummary = () => {
     if (addon.type === 'flat') return addon.price;
     return 0;
   };
-  const lodgePricePerNight = getLodgePricePerNight(guestCount);
+  const lodgePricePerNight = getLodgePricePerNight(guestCount, lodge);
   let totalEstimate = lodgePricePerNight * nightCount;
   selectedAddons.forEach((addon) => { totalEstimate += getAddonTotal(addon); });
   const handleSubmit = async () => {
@@ -918,7 +991,7 @@ const BookingApp = () => {
               ))}
             </div>
             <h1 className="booking-title">{translations[lang]?.header?.title}</h1>
-            <p className="booking-tagline">{translations[lang]?.header?.tagline}</p>
+            {translations[lang]?.header?.tagline && <p className="booking-tagline">{translations[lang]?.header?.tagline}</p>}
           </div>
           <BookingWizard />
         </div>

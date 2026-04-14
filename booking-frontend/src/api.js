@@ -61,16 +61,15 @@ export async function getSettings() {
 
 /**
  * Hämta bekräftade bokningar (datum) för kalendervisning
- * Returnerar bara check_in/check_out för att visa upptagna datum
+ * Använder en security definer-funktion så att anon kan se bokade datum
+ * utan att ha direkt tillgång till bookings-tabellen
  */
 export async function getBookedDates() {
   const { data, error } = await supabase
-    .from('bookings')
-    .select('check_in, check_out')
-    .in('status', ['confirmed', 'paid', 'pending'])
+    .rpc('get_booked_dates')
 
   if (error) throw error
-  return data
+  return data || []
 }
 
 // ============================================================

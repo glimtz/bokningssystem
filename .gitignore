@@ -26,3 +26,7 @@ Thumbs.db
 
 # Package lock (use booking-frontend/package-lock.json instead)
 package-lock.json
+
+# Supabase CLI temp/cache
+supabase/.temp/
+supabase/.branches/

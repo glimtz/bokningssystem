@@ -2,7 +2,7 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-04-22
+> Senast uppdaterad: 2026-05-11
 
 ---
 
@@ -32,6 +32,8 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 ## 3. Git-historik
 
 ```
+2245a18 Add GitHub Action to keep Supabase project alive
+196d335 docs: update handoff with admin dashboard and RPC info
 fada692 chore: gitignore supabase CLI temp files
 d49b982 feat: admin dashboard + booked dates in public calendar
 c9a6e7f docs: update handoff, remove duplicate readmes
@@ -56,6 +58,9 @@ Bokningssystem/
 ├── kravspec-bokningssystem.md         # Kravspecifikation
 ├── databasschema.md                   # Databasdesign-dokumentation
 ├── flightmode-adventures.md           # Företagsbeskrivning
+├── .github/
+│   └── workflows/
+│       └── keep-supabase-alive.yml   # GitHub Action — pingar Supabase var 5:e dag
 ├── .gitignore
 ├── booking-frontend/
 │   ├── .env                           # Supabase-credentials (INTE i git)
@@ -200,6 +205,15 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 - Table: bookings
 - Event: INSERT
 - Type: Supabase Edge Function → send-booking-emails
+
+### 6.8 Keep-alive workflow (GitHub Actions)
+- GitHub Action `.github/workflows/keep-supabase-alive.yml` pingar Supabase REST API var 5:e dag för att förhindra att free-tier-projektet pausas (pausas annars efter 7 dagars inaktivitet)
+- Cron: `0 9 */5 * *` (09:00 UTC, var 5:e dag) + manuell trigger via `workflow_dispatch`
+- Pingar `/rest/v1/bookings?select=id&limit=1` med anon-nyckel — accepterar 200/401/403 som lyckad körning (alla räknas som projektaktivitet)
+- GitHub Secrets som används (konfigurerade i repo settings → Secrets and variables → Actions):
+  - `SUPABASE_URL` = `https://mqarsrzwwttgccwiwkir.supabase.co`
+  - `SUPABASE_ANON_KEY` = anon-nyckeln (samma som i `.env`)
+- Logg och manuell körning: https://github.com/glimtz/bokningssystem/actions/workflows/keep-supabase-alive.yml
 
 ## 7. Publikt bokningsflöde (end-to-end)
 

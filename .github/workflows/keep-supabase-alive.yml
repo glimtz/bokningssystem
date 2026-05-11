@@ -1,0 +1,42 @@
+name: Keep Supabase Alive
+
+# Pingar Supabase var 5:e dag för att förhindra paus av free-tier-projekt
+# Free-tier pausar projekt efter 7 dagars inaktivitet — denna workflow
+# nollställer timern genom att göra en SELECT mot bookings-tabellen.
+
+on:
+  schedule:
+    # Var 5:e dag kl 09:00 UTC (= 11:00 svensk tid sommartid)
+    - cron: "0 9 */5 * *"
+  workflow_dispatch:  # Tillåter manuell körning från Actions-fliken
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          echo "Pingar Supabase för att hålla projektet aktivt..."
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/bookings?select=id&limit=1")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP status: $http_code"
+          echo "Response: $body"
+
+          # Acceptera både 200 (lyckad query) och 401/403 (auth fungerar, RLS blockerar)
+          # Båda räknas som projektaktivitet i Supabase
+          if [ "$http_code" = "200" ] || [ "$http_code" = "401" ] || [ "$http_code" = "403" ]; then
+            echo "Supabase pingad framgångsrikt"
+            exit 0
+          else
+            echo "Pingen misslyckades med status $http_code"
+            exit 1
+          fi

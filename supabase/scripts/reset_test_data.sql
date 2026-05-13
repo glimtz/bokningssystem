@@ -46,15 +46,17 @@ commit;
 -- ------------------------------------------------------------
 -- Verifiera resultatet
 -- ------------------------------------------------------------
-select 'bookings'       as table_name, count(*) as rows from bookings
-union all select 'booking_addons', count(*) from booking_addons
-union all select 'payments',       count(*) from payments
-union all select 'email_log',      count(*) from email_log
-union all select 'guests',         count(*) from guests
-union all select 'blocked_dates',  count(*) from blocked_dates
-union all select 'addons (kvar)',  count(*) from addons
-union all select 'seasons (kvar)', count(*) from seasons
-union all select 'settings (kvar)',count(*) from settings;
+-- Subquery-form fungerar pålitligt i Supabase SQL Editor.
+-- Efter körning ska bookings/booking_addons/payments/email_log/guests = 0
+-- och addons/seasons/settings ha kvar sitt innehåll.
 
--- Efter körning ska alla "transaktions"-tabeller vara 0
--- och de "statiska" (addons, seasons, settings) ha kvar sitt innehåll.
+select
+  (select count(*) from bookings)       as bookings,
+  (select count(*) from booking_addons) as booking_addons,
+  (select count(*) from payments)       as payments,
+  (select count(*) from email_log)      as email_log,
+  (select count(*) from guests)         as guests,
+  (select count(*) from blocked_dates)  as blocked_dates,
+  (select count(*) from addons)         as addons_kept,
+  (select count(*) from seasons)        as seasons_kept,
+  (select count(*) from settings)       as settings_kept;

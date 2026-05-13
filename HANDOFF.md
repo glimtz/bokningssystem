@@ -2,7 +2,7 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-05-11
+> Senast uppdaterad: 2026-05-13
 
 ---
 
@@ -32,6 +32,9 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 ## 3. Git-historik
 
 ```
+aab3010 fix: rewrite verification query using subqueries to avoid 'rows' keyword conflict
+2cb1a53 chore: add SQL script to reset test bookings before going live
+b03e839 docs: add keep-alive workflow to handoff
 2245a18 Add GitHub Action to keep Supabase project alive
 196d335 docs: update handoff with admin dashboard and RPC info
 fada692 chore: gitignore supabase CLI temp files
@@ -94,6 +97,8 @@ Bokningssystem/
     ├── .gitignore
     ├── migrations/
     │   └── 001_initial_schema.sql     # Databas-schema (10 tabeller, RLS, seed data)
+    ├── scripts/
+    │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/
         └── send-booking-emails/
             └── index.ts               # Edge Function — SMTP-mail vid ny bokning
@@ -206,7 +211,17 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 - Event: INSERT
 - Type: Supabase Edge Function → send-booking-emails
 
-### 6.8 Keep-alive workflow (GitHub Actions)
+### 6.8 Reset-skript (rensa testdata)
+- Fil: `supabase/scripts/reset_test_data.sql`
+- Tömmer `bookings`, `booking_addons`, `payments`, `email_log`, `guests` med `TRUNCATE ... RESTART IDENTITY CASCADE`
+- Behåller statisk konfiguration: `addons`, `seasons`, `pricing_periods`, `settings`
+- `blocked_dates` lämnas intakt by default (utkommenterad valfri rensning)
+- Verifierings-query i slutet räknar rader per tabell — använder subqueries istället för `UNION ALL` eftersom Supabase SQL Editor snubblade på `rows` som column-alias
+- Användning: klistra in i Supabase SQL Editor → kör → kontrollera att transaktionstabeller är 0 och statiska tabeller har sitt innehåll kvar
+- Efter rensning: nästa bokning får automatiskt `VL-2026-001` igen (triggern `generate_booking_reference` räknar `count(*) + 1`)
+- Skriptet kördes 2026-05-13 efter testfasen för att gå skarpt — verifierat fungerande på riktig testdata
+
+### 6.9 Keep-alive workflow (GitHub Actions)
 - GitHub Action `.github/workflows/keep-supabase-alive.yml` pingar Supabase REST API var 5:e dag för att förhindra att free-tier-projektet pausas (pausas annars efter 7 dagars inaktivitet)
 - Cron: `0 9 */5 * *` (09:00 UTC, var 5:e dag) + manuell trigger via `workflow_dispatch`
 - Pingar `/rest/v1/bookings?select=id&limit=1` med anon-nyckel — accepterar 200/401/403 som lyckad körning (alla räknas som projektaktivitet)

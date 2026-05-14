@@ -92,6 +92,14 @@ export async function updateBookingStatus(id, status) {
     update[timestampField[status]] = new Date().toISOString()
   }
 
+  // Vid återställning till pending: rensa declined_at och cancelled_at
+  // så bokningen ser "fräsch" ut igen. confirmed_at och paid_at lämnas
+  // intakta (de speglar betalningshistorik och kan vara relevanta).
+  if (status === 'pending') {
+    update.declined_at = null
+    update.cancelled_at = null
+  }
+
   const { data, error } = await supabase
     .from('bookings')
     .update(update)
@@ -113,6 +121,87 @@ export async function updateBookingNotes(id, admin_notes) {
 
   if (error) throw error
   return data
+}
+
+// Registrera eller ångra en betalning på en bokning.
+// type:   'advance' | 'final' | 'deposit_paid' | 'deposit_refunded'
+// paidAt: ISO-timestamp (sätt till null för att ångra)
+//
+// Automatiska statusändringar när paidAt sätts:
+//   • advance → status går från 'pending'   till 'confirmed'
+//   • final   → status går från 'confirmed' till 'paid'
+// Säkerhetsdepositionen påverkar inte bokningens huvudstatus.
+export async function setBookingPayment(id, type, paidAt) {
+  const columnMap = {
+    advance: 'advance_paid_at',
+    final: 'final_paid_at',
+    deposit_paid: 'deposit_paid_at',
+    deposit_refunded: 'deposit_refunded_at',
+  }
+  const col = columnMap[type]
+  if (!col) throw new Error('Invalid payment type: ' + type)
+
+  const { data: current, error: fetchError } = await supabase
+    .from('bookings')
+    .select('status, confirmed_at, paid_at')
+    .eq('id', id)
+    .single()
+  if (fetchError) throw fetchError
+
+  const update = { [col]: paidAt }
+
+  if (paidAt) {
+    if (type === 'advance' && current.status === 'pending') {
+      update.status = 'confirmed'
+      update.confirmed_at = current.confirmed_at || new Date().toISOString()
+    }
+    if (type === 'final' && current.status === 'confirmed') {
+      update.status = 'paid'
+      update.paid_at = current.paid_at || new Date().toISOString()
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .update(update)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// Skicka status-mail till gästen via Edge Function send-booking-emails.
+// eventType: 'booking_confirmed' | 'booking_declined'
+//
+// Mailet skickas asynkront. Returnerar { ok: true } vid lyckat utskick,
+// eller { ok: false, error: '...' } om något gick fel. Vi kastar inte
+// exceptions — admin-flödet ska inte avbrytas av ett mail-fel, men admin
+// ska informeras så de kan följa upp manuellt.
+export async function sendStatusEmail(bookingId, eventType) {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-booking-emails', {
+      body: { event_type: eventType, booking_id: bookingId },
+    })
+    if (error) return { ok: false, error: error.message || String(error) }
+    if (data && data.error) return { ok: false, error: data.error }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) }
+  }
+}
+
+// Hard delete — tar bort bokningen permanent.
+// booking_addons och payments raderas automatiskt via ON DELETE CASCADE.
+// email_log behålls men får booking_id = NULL (ON DELETE SET NULL).
+// Gästen i guests-tabellen lämnas orörd.
+export async function deleteBooking(id) {
+  const { error } = await supabase
+    .from('bookings')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
 }
 
 // ============================================================

@@ -254,6 +254,23 @@ const StatsPage = () => {
   const maxCount = Math.max(...monthlyData.map(m => m.count), 1)
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
 
+  // Bokningar per vistelsemånad (check_in), uppdelat per status
+  const monthlyByStay = useMemo(() => {
+    const months = Array.from({ length: 12 }, (_, i) => ({ month: i, confirmed: 0, paid: 0, completed: 0 }))
+    if (!stats) return months
+    const currentYear = new Date().getFullYear()
+    ;(stats.bookings || []).forEach(b => {
+      if (!['confirmed', 'paid', 'completed'].includes(b.status)) return
+      const d = new Date(b.check_in)
+      if (d.getFullYear() === currentYear) {
+        months[d.getMonth()][b.status]++
+      }
+    })
+    return months
+  }, [stats])
+
+  const maxStayCount = Math.max(...monthlyByStay.map(m => m.confirmed + m.paid + m.completed), 1)
+
   if (loading) return <div className="admin-loading">Laddar statistik...</div>
   if (error) return <div className="admin-error">Fel: {error}</div>
   if (!stats) return <div className="admin-error">Kunde inte ladda statistik.</div>
@@ -265,7 +282,7 @@ const StatsPage = () => {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{stats.thisYearBookings}</div>
-          <div className="stat-label">Bokningar {new Date().getFullYear()}</div>
+          <div className="stat-label">Bokningsförfrågningar {new Date().getFullYear()}</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{stats.byStatus.pending || 0}</div>
@@ -282,7 +299,7 @@ const StatsPage = () => {
       </div>
 
       <div className="admin-section">
-        <h2 className="admin-section-title">Bokningar per månad ({new Date().getFullYear()})</h2>
+        <h2 className="admin-section-title">Inkomna bokningsförfrågningar per månad ({new Date().getFullYear()})</h2>
         <div className="chart-bar-container">
           {monthlyData.map((m, i) => (
             <div key={i} className="chart-bar-col">
@@ -313,6 +330,56 @@ const StatsPage = () => {
               </div>
             )
           })}
+        </div>
+      </div>
+
+      <div className="admin-section">
+        <h2 className="admin-section-title">Bokningar per månad ({new Date().getFullYear()})</h2>
+        <div className="chart-bar-container">
+          {monthlyByStay.map((m, i) => {
+            const total = m.confirmed + m.paid + m.completed
+            const heightPx = (total / maxStayCount) * 120
+            return (
+              <div key={i} className="chart-bar-col">
+                <div className="chart-bar-value">{total > 0 ? total : ''}</div>
+                <div
+                  style={{
+                    width: '100%',
+                    height: `${heightPx}px`,
+                    display: 'flex',
+                    flexDirection: 'column-reverse',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {m.confirmed > 0 && (
+                    <div style={{ flexGrow: m.confirmed, background: statusColors.confirmed }} />
+                  )}
+                  {m.paid > 0 && (
+                    <div style={{ flexGrow: m.paid, background: statusColors.paid }} />
+                  )}
+                  {m.completed > 0 && (
+                    <div style={{ flexGrow: m.completed, background: statusColors.completed }} />
+                  )}
+                </div>
+                <div className="chart-bar-label">{monthNames[i]}</div>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginTop: '0.75rem', fontSize: '0.85rem' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: statusColors.confirmed }} />
+            Bekräftade
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: statusColors.paid }} />
+            Betalda
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: statusColors.completed }} />
+            Genomförda
+          </span>
         </div>
       </div>
     </div>
@@ -386,15 +453,6 @@ const BookingsPage = () => {
 
   useEffect(() => { loadBookings() }, [loadBookings])
 
-  const handleStatusChange = async (id, newStatus) => {
-    try {
-      await api.updateBookingStatus(id, newStatus)
-      loadBookings()
-    } catch (err) {
-      alert('Kunde inte uppdatera status: ' + err.message)
-    }
-  }
-
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('sv-SE') : '—'
   const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
 
@@ -464,28 +522,9 @@ const BookingsPage = () => {
                       {conflict && <span className="conflict-badge">⚠ Datumkrock</span>}
                     </td>
                     <td onClick={e => e.stopPropagation()}>
-                      {b.status === 'pending' && !conflict && (
-                        <div className="action-btns">
-                          <button className="admin-btn admin-btn-confirm admin-btn-xs" onClick={() => handleStatusChange(b.id, 'confirmed')}>
-                            Godkänn
-                          </button>
-                          <button className="admin-btn admin-btn-decline admin-btn-xs" onClick={() => handleStatusChange(b.id, 'declined')}>
-                            Neka
-                          </button>
-                        </div>
-                      )}
-                      {b.status === 'pending' && conflict && (
-                        <div className="action-btns">
-                          <button className="admin-btn admin-btn-decline admin-btn-xs" onClick={() => handleStatusChange(b.id, 'declined')}>
-                            Neka
-                          </button>
-                        </div>
-                      )}
-                      {b.status === 'confirmed' && (
-                        <button className="admin-btn admin-btn-confirm admin-btn-xs" onClick={() => handleStatusChange(b.id, 'paid')}>
-                          Betald
-                        </button>
-                      )}
+                      <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={() => navigate(`/admin/bookings/${b.id}`)}>
+                        Öppna
+                      </button>
                     </td>
                   </tr>
                 )
@@ -530,8 +569,52 @@ const BookingDetailPage = () => {
   useEffect(() => { loadBooking() }, [loadBooking])
 
   const handleStatusChange = async (newStatus) => {
+    if (newStatus === 'cancelled') {
+      const confirmed = window.confirm(
+        `Avboka bokning ${booking.reference}?\n\n` +
+        `Bokningens status ändras till "Avbokad" men all data behålls i databasen. ` +
+        `Datumen blir lediga igen och kan bokas av andra gäster.`
+      )
+      if (!confirmed) return
+    }
+
+    if (newStatus === 'declined') {
+      const confirmed = window.confirm(
+        `Neka bokning ${booking.reference}?\n\n` +
+        `Förfrågan från ${booking.guests?.name || 'gästen'} markeras som nekad. ` +
+        `Ett mejl skickas automatiskt till gästen. Data behålls i databasen.`
+      )
+      if (!confirmed) return
+    }
+
+    if (newStatus === 'confirmed') {
+      const confirmed = window.confirm(
+        `Godkänn bokning ${booking.reference}?\n\n` +
+        `Bokningen markeras som bekräftad och ett mejl med betalningsinstruktioner skickas till ${booking.guests?.name || 'gästen'}.`
+      )
+      if (!confirmed) return
+    }
+
+    if (newStatus === 'pending') {
+      const confirmed = window.confirm(
+        `Återställ bokning ${booking.reference} till väntande?\n\n` +
+        `Bokningen kan sedan godkännas eller nekas på nytt. Inget mejl skickas till gästen.`
+      )
+      if (!confirmed) return
+    }
+
     try {
       await api.updateBookingStatus(id, newStatus)
+
+      // Skicka mail efter lyckad status-uppdatering
+      if (newStatus === 'confirmed' || newStatus === 'declined') {
+        const eventType = newStatus === 'confirmed' ? 'booking_confirmed' : 'booking_declined'
+        const mailResult = await api.sendStatusEmail(id, eventType)
+        if (!mailResult.ok) {
+          alert(`Status uppdaterades, men mejlet kunde inte skickas: ${mailResult.error}\n\nKontakta gästen manuellt.`)
+        }
+      }
+
       loadBooking()
     } catch (err) {
       alert('Kunde inte uppdatera status: ' + err.message)
@@ -546,6 +629,45 @@ const BookingDetailPage = () => {
       alert('Kunde inte spara anteckningar: ' + err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePayment = async (type, label) => {
+    const confirmed = window.confirm(`Markera "${label}" som mottagen för bokning ${booking.reference}?`)
+    if (!confirmed) return
+    try {
+      await api.setBookingPayment(id, type, new Date().toISOString())
+      loadBooking()
+    } catch (err) {
+      alert('Kunde inte registrera betalningen: ' + err.message)
+    }
+  }
+
+  const handleUnpayment = async (type, label) => {
+    const confirmed = window.confirm(`Ångra registreringen av "${label}" för bokning ${booking.reference}?`)
+    if (!confirmed) return
+    try {
+      await api.setBookingPayment(id, type, null)
+      loadBooking()
+    } catch (err) {
+      alert('Kunde inte ångra betalningen: ' + err.message)
+    }
+  }
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Radera bokning ${booking.reference} permanent?\n\n` +
+      `Detta tar bort bokningen, dess tillval och eventuella betalningar ur databasen. ` +
+      `Mejlloggar behålls men kopplas loss från bokningen. Gästen ${booking.guests?.name || ''} ` +
+      `lämnas kvar i gästregistret.\n\nÅtgärden kan inte ångras.`
+    )
+    if (!confirmed) return
+
+    try {
+      await api.deleteBooking(id)
+      navigate('/admin/bookings')
+    } catch (err) {
+      alert('Kunde inte radera bokningen: ' + err.message)
     }
   }
 
@@ -622,6 +744,61 @@ const BookingDetailPage = () => {
         )}
       </div>
 
+      <div className="detail-card" style={{ marginTop: '1rem' }}>
+        <h3>Betalningar</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-muted)', margin: '0 0 0.75rem 0' }}>
+          Bokningsavgiften krävs för att bokningen ska vara giltig (bekräftas automatiskt vid registrering).
+          Slutbetalning ska ske senast 30 dagar före ankomst.
+        </p>
+        {[
+          { type: 'advance', label: 'Bokningsavgift (50%)', amount: Math.round((booking.total_price || 0) * 0.5), paidAt: booking.advance_paid_at, hint: 'Krävs för bekräftelse' },
+          { type: 'final', label: 'Slutbetalning (50%)', amount: Math.round((booking.total_price || 0) * 0.5), paidAt: booking.final_paid_at, hint: 'Senast 30 dagar före ankomst' },
+          { type: 'deposit_paid', label: 'Säkerhetsdeposition', amount: booking.deposit_amount || 0, paidAt: booking.deposit_paid_at, hint: 'Återbetalas efter godkänd avsyning' },
+        ].map(row => (
+          <div key={row.type} className="detail-row" style={{ alignItems: 'center' }}>
+            <span>
+              {row.label}
+              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--admin-text-muted)' }}>{row.hint}</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <strong>{formatPrice(row.amount)}</strong>
+              {row.paidAt ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: '#568C03', fontSize: '0.85rem' }}>✓ {formatDate(row.paidAt)}</span>
+                  <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={() => handleUnpayment(row.type, row.label)}>Ångra</button>
+                </span>
+              ) : (
+                <button className="admin-btn admin-btn-confirm admin-btn-xs" onClick={() => handlePayment(row.type, row.label)}>
+                  Markera mottagen
+                </button>
+              )}
+            </span>
+          </div>
+        ))}
+
+        {booking.deposit_paid_at && (
+          <div className="detail-row" style={{ alignItems: 'center', borderTop: '1px dashed var(--admin-border, #ddd)', marginTop: '0.5rem', paddingTop: '0.75rem' }}>
+            <span>
+              Återbetalning av deposition
+              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--admin-text-muted)' }}>Efter godkänd avsyning</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <strong>{formatPrice(booking.deposit_amount || 0)}</strong>
+              {booking.deposit_refunded_at ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: '#568C03', fontSize: '0.85rem' }}>✓ {formatDate(booking.deposit_refunded_at)}</span>
+                  <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={() => handleUnpayment('deposit_refunded', 'Återbetalning av deposition')}>Ångra</button>
+                </span>
+              ) : (
+                <button className="admin-btn admin-btn-confirm admin-btn-xs" onClick={() => handlePayment('deposit_refunded', 'Återbetalning av deposition')}>
+                  Markera återbetald
+                </button>
+              )}
+            </span>
+          </div>
+        )}
+      </div>
+
       {booking.message && (
         <div className="detail-card" style={{ marginTop: '1rem' }}>
           <h3>Gästens meddelande</h3>
@@ -671,7 +848,23 @@ const BookingDetailPage = () => {
               <button className="admin-btn admin-btn-decline" onClick={() => handleStatusChange('cancelled')}>Avboka</button>
             </>
           )}
+          {(booking.status === 'declined' || booking.status === 'cancelled') && (
+            <button className="admin-btn admin-btn-secondary" onClick={() => handleStatusChange('pending')}>
+              Återställ till väntande
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className="detail-card danger-zone" style={{ marginTop: '2rem', borderColor: '#C0392B' }}>
+        <h3 style={{ color: '#C0392B' }}>Farlig zon</h3>
+        <p style={{ fontSize: '0.9rem', color: 'var(--admin-text-muted)', margin: '0 0 0.75rem 0' }}>
+          Radera bokningen permanent ur databasen. Tillval och betalningar följer med. Gäst och mejllogg lämnas kvar.
+          Använd hellre <strong>Neka</strong> eller <strong>Avboka</strong> om du vill behålla historiken.
+        </p>
+        <button className="admin-btn admin-btn-decline admin-btn-sm" onClick={handleDelete}>
+          Radera bokning permanent
+        </button>
       </div>
     </div>
   )

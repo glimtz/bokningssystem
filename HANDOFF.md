@@ -2,7 +2,7 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-05-13
+> Senast uppdaterad: 2026-05-14
 
 ---
 
@@ -32,6 +32,8 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 ## 3. Git-historik
 
 ```
+(2026-05-14 dagens arbete — ej committat ännu)
+aa47f71 docs: update handoff with reset script (2026-05-13)
 aab3010 fix: rewrite verification query using subqueries to avoid 'rows' keyword conflict
 2cb1a53 chore: add SQL script to reset test bookings before going live
 b03e839 docs: add keep-alive workflow to handoff
@@ -76,7 +78,8 @@ Bokningssystem/
 │   ├── index.html
 │   ├── public/
 │   │   ├── favicon.svg
-│   │   └── icons.svg
+│   │   ├── icons.svg
+│   │   └── bokningsavtal.pdf         # Statiskt avtal som länkas i confirmation-mail
 │   ├── src/
 │   │   ├── main.jsx                   # Entry point + React Router (/, /admin/*)
 │   │   ├── BookingApp.jsx             # Publikt bokningsflöde — 4-stegs wizard (~1000 rader)
@@ -96,12 +99,13 @@ Bokningssystem/
 └── supabase/
     ├── .gitignore
     ├── migrations/
-    │   └── 001_initial_schema.sql     # Databas-schema (10 tabeller, RLS, seed data)
+    │   ├── 001_initial_schema.sql     # Databas-schema (10 tabeller, RLS, seed data)
+    │   └── 002_payment_tracking.sql   # Lägger till advance_paid_at / final_paid_at / deposit_paid_at / deposit_refunded_at
     ├── scripts/
     │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/
         └── send-booking-emails/
-            └── index.ts               # Edge Function — SMTP-mail vid ny bokning
+            └── index.ts               # Edge Function — SMTP-mail för booking_received / booking_confirmed / booking_declined
 ```
 
 ## 5. Lokal setup (ny dator)
@@ -191,11 +195,18 @@ Följande fixar gjordes direkt i Supabase SQL Editor:
 
 ### 6.5 Edge Function — send-booking-emails
 - Deployad i Supabase
-- Triggas via Database Webhook på `bookings` INSERT
-- Skickar 2 mail: gästbekräftelse (4 språk) + admin-notis till info@flightmode.se
+- **Två sätt att triggas (sedan 2026-05-14):**
+  1. **Database Webhook** på `bookings` INSERT → skickar `booking_received` (gäst + admin-notis till info@flightmode.se)
+  2. **Direkt HTTP-anrop** från admin-UI via `supabase.functions.invoke(...)` med `{event_type, booking_id}` → skickar `booking_confirmed` eller `booking_declined`
+- CORS-headers + OPTIONS preflight stödjs (krävs för browser-anrop)
 - Använder Loopia SMTP via denomailer (port 465, TLS)
 - Avsändare: `Vilhelmina Lodge <leif.gyllenberg@glimtz.se>`
-- Mail visar bokningsdetaljer, priser, valda dagar för båt/guide, och nästa steg
+- **Mailtyper som är byggda:**
+  - `booking_received` — bekräftelse till gäst + admin-notis. 4 språk (EN/SV/DE/FR)
+  - `booking_confirmed` — när admin godkänner. Innehåller betalningsbox (50% bokningsavgift + slutbetalning + deposition), nyckelvillkor (avbokningspolicy etc.), länk till statisk PDF (`/bokningsavtal.pdf`). 4 språk
+  - `booking_declined` — när admin nekar. Kort artig text på 4 språk
+- **Mailtyper i email_type-enum men ej byggda än:** `payment_request`, `payment_confirmed`, `reminder`, `welcome`, `cancellation` (planerat fas 2)
+- HTML är optimerad för Outlook (använder `<div>` i stället för `<p>`, pixel-baserad `line-height`, `mso-line-height-rule: exactly`)
 
 ### 6.6 Supabase Secrets (satta via CLI)
 ```
@@ -211,7 +222,19 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 - Event: INSERT
 - Type: Supabase Edge Function → send-booking-emails
 
-### 6.8 Reset-skript (rensa testdata)
+### 6.8 Payment tracking (migration 002)
+- Migration `002_payment_tracking.sql` lägger till fyra timestamp-kolumner på `bookings`:
+  - `advance_paid_at` — bokningsavgift (50%) mottagen → krävs för bekräftelse
+  - `final_paid_at` — slutbetalning (50%) mottagen
+  - `deposit_paid_at` — säkerhetsdeposition (5 000 kr) mottagen
+  - `deposit_refunded_at` — säkerhetsdeposition återbetald efter avsyning
+- Belopp beräknas dynamiskt i UI: bokningsavgift och slutbetalning som `total_price * 0.5`, deposition från `bookings.deposit_amount`
+- Migration kördes i Supabase SQL Editor 2026-05-14 (CASCADE-säker: `add column if not exists`)
+- API i `adminApi.js`: `setBookingPayment(id, type, paidAt)` hanterar alla fyra
+- **Auto-statusbyte:** när `advance_paid_at` sätts → status `pending → confirmed`; när `final_paid_at` sätts → status `confirmed → paid`
+- UI i `BookingDetailPage`: "Betalningar"-sektion med fyra rader, varje med belopp + status + knapp "Markera mottagen" / "Ångra"
+
+### 6.9 Reset-skript (rensa testdata)
 - Fil: `supabase/scripts/reset_test_data.sql`
 - Tömmer `bookings`, `booking_addons`, `payments`, `email_log`, `guests` med `TRUNCATE ... RESTART IDENTITY CASCADE`
 - Behåller statisk konfiguration: `addons`, `seasons`, `pricing_periods`, `settings`
@@ -221,7 +244,7 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 - Efter rensning: nästa bokning får automatiskt `VL-2026-001` igen (triggern `generate_booking_reference` räknar `count(*) + 1`)
 - Skriptet kördes 2026-05-13 efter testfasen för att gå skarpt — verifierat fungerande på riktig testdata
 
-### 6.9 Keep-alive workflow (GitHub Actions)
+### 6.10 Keep-alive workflow (GitHub Actions)
 - GitHub Action `.github/workflows/keep-supabase-alive.yml` pingar Supabase REST API var 5:e dag för att förhindra att free-tier-projektet pausas (pausas annars efter 7 dagars inaktivitet)
 - Cron: `0 9 */5 * *` (09:00 UTC, var 5:e dag) + manuell trigger via `workflow_dispatch`
 - Pingar `/rest/v1/bookings?select=id&limit=1` med anon-nyckel — accepterar 200/401/403 som lyckad körning (alla räknas som projektaktivitet)
@@ -249,9 +272,19 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 
 ### 8.1 Sidor/routes
-- **`/admin` (Stats)** — Översiktssida: antal bokningar, intäkter, nätter, gäster, månadsvis fördelning
-- **`/admin/bookings`** — Lista över alla bokningar med filter (status), sök (ref/namn/email), paginering
-- **`/admin/bookings/:id`** — Detaljvy för enskild bokning: gäst, datum, addons, priser, status, adminanteckningar, betalningslogg, mail-logg. Kan byta status (pending → confirmed/declined/cancelled/paid) och spara anteckningar
+- **`/admin` (Stats)** — Översiktssida. Visar:
+  - Fyra stat-kort: Bokningsförfrågningar [år], Väntande, Totala intäkter, Bokade nätter
+  - "Inkomna bokningsförfrågningar per månad ([år])" — stapeldiagram baserat på `created_at`
+  - "Status fördelning" — antal/procent per status
+  - "Bokningar per månad ([år])" — stacked stapeldiagram baserat på `check_in` med tre färgsegment (Bekräftade/Betalda/Genomförda)
+- **`/admin/bookings`** — Lista över alla bokningar med filter (status), sök (ref/namn/email), paginering. Åtgärd-kolumnen visar enbart en "Öppna"-knapp som tar till detaljvyn (sedan 2026-05-14)
+- **`/admin/bookings/:id`** — Detaljvy för enskild bokning. Innehåller:
+  - Gäst, datum, addons, priser, adminanteckningar
+  - **Betalningar-sektion** (sedan 2026-05-14): bokningsavgift, slutbetalning, säkerhetsdeposition, återbetalning — vardera med "Markera mottagen" / "Ångra"
+  - **Status-knappar:** Godkänn/Neka (pending) → Betald/Avboka (confirmed) → Genomförd/Avboka (paid). Återställ-till-väntande-knapp för declined/cancelled (sedan 2026-05-14)
+  - Bekräftelsedialog vid alla destruktiva status-byten (Avboka, Neka, Godkänn, Återställ)
+  - **Mailutskick automatiskt** vid Godkänn (booking_confirmed) och Neka (booking_declined)
+  - **Farlig zon-sektion** med hard delete (sedan 2026-05-14) — tar bort bokningen ur databasen permanent. booking_addons + payments cascade-raderas, email_log behålls
 - **`/admin/calendar`** — Årsvy med alla bokade och blockerade datum. Kan lägga till/ta bort blockerade datum (manuellt eller t.ex. Airbnb-synk-markering)
 - **`/admin/seasons`** — Hantera säsonger, prisperioder, addon-priser och globala inställningar (deposition-storlek, max gäster etc.)
 
@@ -278,23 +311,37 @@ Admin läggs till direkt i Supabase Dashboard:
 
 ## 10. Kända problem och teknisk skuld
 
-- [ ] **Migrationsfilen är inte synkad** — RLS-fixar och `get_booked_dates`-RPC gjordes direkt i SQL Editor, migrationsfilen har gamla policies
+- [ ] **Migrationsfilen är inte synkad** — RLS-fixar och `get_booked_dates`-RPC gjordes direkt i SQL Editor, migrationsfilen har gamla policies. (Note: migration 002 är synkad)
 - [ ] **SMTP-lösenord bör bytas** — exponerades i chatt-session
 - [ ] **FROM-adress:** Mail skickas från `leif.gyllenberg@glimtz.se` istället för `info@flightmode.se` (Loopia kräver att avsändaren matchar SMTP-kontot). Lösning: sätt upp separat SMTP för info@flightmode.se i Loopia
-- [ ] **Inga betalningar** — Stripe/Swish-integration planerad men ej byggd
+- [ ] **SPF/DKIM saknas för flightmode.se** — confirmation-mail hamnar i skräppost. Behöver konfigureras hos DNS-leverantör
+- [ ] **Inga betalningar (automatik)** — Stripe/Swish ej integrerat. Idag manuellt: admin markerar betalningar mottagna via UI:t (sedan 2026-05-14)
 - [ ] **Resend-konto skapat** — API-nyckel finns men används inte (vi gick med Loopia SMTP). Kan avaktiveras
 - [ ] **Vercel-deploy är manuell** — kräver `npx vercel --prod` från terminalen. Kan kopplas till GitHub för auto-deploy
+- [ ] **Edge Function-deploy är manuell** — kräver `npx supabase functions deploy send-booking-emails ...` från terminalen
+- [ ] **Avtals-PDF har platshållare** — `/bokningsavtal.pdf` är generisk mall med `[Namn]` etc. Inte personalanpassad per bokning. Förbättring i fas 2: generera ifylld PDF on-the-fly i Edge Function
+- [ ] **Mail-utskick saknas för betalningar och avbokningar** — när bokningsavgift markeras mottagen eller en bokning avbokas skickas inget mail. Planerat fas 2 (`payment_confirmed`, `cancellation`)
+- [ ] **Påminnelse- och välkomstmail saknas** — `reminder` och `welcome` definierade i schemat men ej byggda. Behöver schedulerad körning (cron eller GitHub Action)
+- [ ] **Variabelt belopp för förskott/slutbetalning** — idag hårdkodat 50/50, ingen möjlighet att t.ex. säga "kräv 8 000 kr i förskott" för en specifik bokning
 - [ ] **Windows/Git CRLF-brus** — `git status` visar ibland 9 filer som "modified" enbart p.g.a. line-endings. Kan lösas med en `.gitattributes` som sätter `* text=auto eol=lf`, men är i nuläget ofarligt (filerna är identiska efter CRLF-normalisering)
 
 ## 11. Planerade nästa steg
 
 1. **~~Admin-dashboard~~** — ✅ Klar (commit d49b982)
-2. **Koppla Vercel till GitHub** — auto-deploy vid push
-3. **Egen domän** — t.ex. booking.flightmode.se på Vercel
-4. **Betalningsintegration** — Stripe för deposition
-5. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
-6. **Synka migrationsfil** — uppdatera 001_initial_schema.sql med RLS-fixarna och `get_booked_dates`-RPC
-7. **Admin-utökningar (ev.):** exportera bokningar till CSV, iCal-feed för kalender, email-mall-editor
+2. **~~Hard delete för bokningar~~** — ✅ Klar 2026-05-14
+3. **~~Payment tracking (manuell)~~** — ✅ Klar 2026-05-14 (migration 002 + UI)
+4. **~~Mail för bekräftelse/nekande~~** — ✅ Klar 2026-05-14 (booking_confirmed + booking_declined på 4 språk)
+5. **~~Restore-knapp för avbokade/nekade bokningar~~** — ✅ Klar 2026-05-14
+6. **Fas 2 mailtyper:** `payment_confirmed`, `cancellation` (när betalningar registreras / bokning avbokas)
+7. **Fas 3 mailtyper:** `reminder` (X dagar före ankomst), `welcome` (vid ankomst) — kräver schedulerad körning
+8. **Koppla Vercel till GitHub** — auto-deploy vid push
+9. **Egen domän** — t.ex. booking.flightmode.se på Vercel
+10. **Stripe/Swish-integration** — automatisk hantering av bokningsavgift och slutbetalning
+11. **SPF/DKIM för flightmode.se** — så mail inte hamnar i skräppost
+12. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
+13. **Synka migrationsfil 001** — uppdatera med RLS-fixarna och `get_booked_dates`-RPC
+14. **Ifylld avtals-PDF** — generera per bokning i Edge Function (i stället för statisk mall)
+15. **Admin-utökningar (ev.):** exportera bokningar till CSV, iCal-feed för kalender, email-mall-editor
 
 ## 12. Språk och preferenser
 

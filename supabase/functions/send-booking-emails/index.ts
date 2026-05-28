@@ -530,8 +530,12 @@ function buildConfirmedGuestEmailHtml(data: BookingData): string {
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term3}</div>
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:20px">• ${t.term4}</div>
 
-    <!-- Contract link -->
-    <div style="margin-bottom:24px"><a href="${CONTRACT_URL}" style="color:#1a3a2a;text-decoration:underline;font-size:14px;line-height:20px">📄 ${t.contractLink}</a></div>
+    <!-- Contract link — visas både som klickbar länk och som plain-text URL.
+         Plain-text-versionen är försäkring eftersom vissa mailklienter
+         (särskilt Apple Mail på iOS) tappar punkter i domännamn när URL:n
+         ligger inom understruken länk-text. -->
+    <div style="margin-bottom:8px;font-size:14px;line-height:20px">📄 <a href="https://vilhelmina-lodge.vercel.app/bokningsavtal.pdf" style="color:#1a3a2a;text-decoration:underline">${t.contractLink}</a></div>
+    <div style="margin-bottom:24px;font-size:12px;line-height:16px;color:#888;word-break:break-all">https://vilhelmina-lodge.vercel.app/bokningsavtal.pdf</div>
 
     <div class="text" style="margin-bottom:12px">${t.closing}</div>
     <div style="color:#1a3a2a;font-weight:600;font-size:15px;line-height:22px">${t.team}</div>

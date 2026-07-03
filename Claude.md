@@ -1,5 +1,9 @@
 # Profil – Leif Gyllenberg
 
+> **Läs `HANDOFF.md` först.** Den innehåller komplett status för Bokningssystem-projektet
+> (Vilhelmina Lodge): techstack, arkitektur, Supabase-/Vercel-uppsättning, kända problem
+> och nästa steg. Den här filen beskriver bara Leifs profil och preferenser.
+
 ## Personlig info
 - **Namn:** Leif Gyllenberg
 - **E-post:** leif.gyllenberg@gmail.com

@@ -1,0 +1,14 @@
+# Normalisera alla textfiler till LF i repot (undviker CRLF-brus på Windows)
+* text=auto eol=lf
+
+# Explicit binära filer — rör aldrig radslut
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

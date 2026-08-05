@@ -30,3 +30,6 @@ package-lock.json
 # Supabase CLI temp/cache
 supabase/.temp/
 supabase/.branches/
+
+.vercel
+.env*

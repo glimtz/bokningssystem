@@ -21,6 +21,13 @@ const SMTP_PASS = Deno.env.get("SMTP_PASS")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// ── AV/PÅ-BRYTARE FÖR ALL E-POST ──────────────────────────────
+// Sätt till false för att TILLFÄLLIGT stänga av alla utgående mail
+// (booking_received, booking_confirmed, booking_declined). Då kan man
+// lägga in testbokningar utan att gäster/admin får mail. Sätt tillbaka
+// till true och deploya om funktionen för att slå på mailen igen.
+const EMAILS_ENABLED = true;
+
 const FROM_EMAIL = "leif.gyllenberg@glimtz.se";
 const FROM_NAME = "Vilhelmina Lodge";
 const ADMIN_EMAIL = "info@flightmode.se";
@@ -116,7 +123,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       greeting: "Vielen Dank für Ihre Buchungsanfrage!",
       intro: "Wir haben Ihre Anfrage erhalten und melden uns innerhalb von 24 Stunden.",
       refLabel: "Buchungsreferenz",
-      datesLabel: "Daten",
+      datesLabel: "Zeitraum",
       guestsLabel: "Gäste",
       nightsLabel: "Nächte",
       lodgeLabel: "Lodge",
@@ -169,7 +176,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       depositLabel: "Security deposit",
       messageLabel: "Your message",
       paymentHeading: "How to pay",
-      paymentInstructions: "Please contact us at info@flightmode.se to receive payment details (bank transfer or Swish). Reference your booking number when paying.",
+      paymentInstructions: "Please pay by international bank transfer to IBAN SE24 6000 0000 0005 8914 8621 (BIC HANDSESS) and state your booking reference when paying.",
       termsHeading: "Key terms",
       term1: "Booking is only valid once the booking fee has been received.",
       term2: "Final payment (remaining 50%) is due no later than 30 days before arrival.",
@@ -195,7 +202,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       depositLabel: "Säkerhetsdeposition",
       messageLabel: "Ditt meddelande",
       paymentHeading: "Så här betalar du",
-      paymentInstructions: "Kontakta oss på info@flightmode.se för att få betalningsuppgifter (bankgiro eller Swish). Ange bokningsreferens vid betalning.",
+      paymentInstructions: "Betala till vårt Bankgiro 763-4694 och ange din bokningsreferens vid betalning.",
       termsHeading: "Viktiga villkor",
       term1: "Bokningen är giltig först när bokningsavgiften har mottagits.",
       term2: "Slutbetalning (resterande 50%) ska vara oss tillhanda senast 30 dagar före ankomst.",
@@ -210,7 +217,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       greeting: "Gute Nachrichten — Ihre Buchung ist bestätigt!",
       intro: "Wir haben Ihre Anfrage geprüft und genehmigt. Um Ihre Buchung zu sichern, bitten wir Sie, die Buchungsgebühr (50% des Gesamtbetrags) innerhalb von 7 Tagen zu bezahlen.",
       refLabel: "Buchungsreferenz",
-      datesLabel: "Daten",
+      datesLabel: "Zeitraum",
       guestsLabel: "Gäste",
       nightsLabel: "Nächte",
       lodgeLabel: "Lodge",
@@ -221,7 +228,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       depositLabel: "Sicherheitskaution",
       messageLabel: "Ihre Nachricht",
       paymentHeading: "So bezahlen Sie",
-      paymentInstructions: "Bitte kontaktieren Sie uns unter info@flightmode.se, um Zahlungsdetails zu erhalten (Banküberweisung oder Swish). Geben Sie bei der Zahlung Ihre Buchungsreferenz an.",
+      paymentInstructions: "Bitte zahlen Sie per internationaler Banküberweisung an IBAN SE24 6000 0000 0005 8914 8621 (BIC HANDSESS) und geben Sie bei der Zahlung Ihre Buchungsreferenz an.",
       termsHeading: "Wichtige Bedingungen",
       term1: "Die Buchung ist erst gültig, wenn die Buchungsgebühr eingegangen ist.",
       term2: "Die Restzahlung (verbleibende 50%) ist spätestens 30 Tage vor Ankunft fällig.",
@@ -247,7 +254,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       depositLabel: "Caution de sécurité",
       messageLabel: "Votre message",
       paymentHeading: "Comment payer",
-      paymentInstructions: "Veuillez nous contacter à info@flightmode.se pour recevoir les détails de paiement (virement bancaire ou Swish). Indiquez votre référence de réservation lors du paiement.",
+      paymentInstructions: "Veuillez effectuer le paiement par virement bancaire international sur l'IBAN SE24 6000 0000 0005 8914 8621 (BIC HANDSESS) en indiquant votre référence de réservation.",
       termsHeading: "Conditions clés",
       term1: "La réservation n'est valable qu'une fois les frais de réservation reçus.",
       term2: "Le paiement final (50% restants) est dû au plus tard 30 jours avant l'arrivée.",
@@ -288,7 +295,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       greeting: "Vielen Dank für Ihr Interesse an der Vilhelmina Lodge",
       intro: "Leider können wir Ihre Buchungsanfrage für die untenstehenden Daten nicht berücksichtigen. Die häufigsten Gründe sind, dass die Daten bereits ausgebucht sind oder die Lodge in diesem Zeitraum geschlossen ist.",
       refLabel: "Buchungsreferenz",
-      datesLabel: "Gewünschte Daten",
+      datesLabel: "Gewünschter Zeitraum",
       guestsLabel: "Gäste",
       nightsLabel: "Nächte",
       altDates: "Gerne besprechen wir alternative Termine mit Ihnen. Antworten Sie einfach auf diese E-Mail oder kontaktieren Sie uns unter info@flightmode.se.",
@@ -314,14 +321,17 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
 // HELPERS
 // ============================================================
 
-function formatDate(dateStr: string): string {
+// Locale per språk så månadsnamn skrivs på gästens språk (juli/July/Juli/juillet).
+const DATE_LOCALES: Record<string, string> = { sv: "sv-SE", en: "en-GB", de: "de-DE", fr: "fr-FR" };
+
+function formatDate(dateStr: string, lang: string = "sv"): string {
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("sv-SE", { year: "numeric", month: "long", day: "numeric" });
+  return d.toLocaleDateString(DATE_LOCALES[lang] || "sv-SE", { year: "numeric", month: "long", day: "numeric" });
 }
 
-function formatDateShort(dateStr: string): string {
+function formatDateShort(dateStr: string, lang: string = "sv"): string {
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("sv-SE", { month: "short", day: "numeric" });
+  return d.toLocaleDateString(DATE_LOCALES[lang] || "sv-SE", { month: "short", day: "numeric" });
 }
 
 function countNights(checkIn: string, checkOut: string): number {
@@ -334,12 +344,12 @@ function formatSEK(amount: number): string {
   return new Intl.NumberFormat("sv-SE").format(amount) + " SEK";
 }
 
-function buildAddonRows(addons: BookingData["addons"]): string {
+function buildAddonRows(addons: BookingData["addons"], lang: string = "sv"): string {
   if (addons.length === 0) return "";
   return addons.map((a) => {
     let row = `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${a.name}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${formatSEK(a.total_price)}</td></tr>`;
     if (a.selected_dates && a.selected_dates.length > 0) {
-      const datesStr = a.selected_dates.map((d) => formatDateShort(d)).join(", ");
+      const datesStr = a.selected_dates.map((d) => formatDateShort(d, lang)).join(", ");
       row += `<tr><td colspan="2" style="padding:2px 12px 8px;color:#888;font-size:12px;font-style:italic;border-bottom:1px solid #eee">→ ${datesStr}</td></tr>`;
     }
     return row;
@@ -370,7 +380,7 @@ function buildReceivedGuestEmailHtml(data: BookingData): string {
   const lang = pickLang(data.guest_language);
   const t = translations.booking_received[lang];
   const nights = countNights(data.check_in, data.check_out);
-  const addonsRows = buildAddonRows(data.addons);
+  const addonsRows = buildAddonRows(data.addons, lang);
 
   return `<!DOCTYPE html>
 <html lang="${lang}">
@@ -388,7 +398,7 @@ function buildReceivedGuestEmailHtml(data: BookingData): string {
     <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px">${t.intro}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8faf9;border-radius:8px;padding:4px;margin-bottom:24px">
       <tr><td style="padding:12px 16px;font-weight:600;color:#1a3a2a;border-bottom:1px solid #e8ede9">${t.refLabel}</td><td style="padding:12px 16px;text-align:right;border-bottom:1px solid #e8ede9;font-weight:600;color:#1a3a2a;font-size:16px">${data.reference}</td></tr>
-      <tr><td style="padding:12px 16px;color:#555;border-bottom:1px solid #e8ede9">${t.datesLabel}</td><td style="padding:12px 16px;text-align:right;color:#333;border-bottom:1px solid #e8ede9">${formatDate(data.check_in)} — ${formatDate(data.check_out)} (${nights} ${t.nightsLabel})</td></tr>
+      <tr><td style="padding:12px 16px;color:#555;border-bottom:1px solid #e8ede9">${t.datesLabel}</td><td style="padding:12px 16px;text-align:right;color:#333;border-bottom:1px solid #e8ede9">${formatDate(data.check_in, lang)} — ${formatDate(data.check_out, lang)} (${nights} ${t.nightsLabel})</td></tr>
       <tr><td style="padding:12px 16px;color:#555;border-bottom:1px solid #e8ede9">${t.guestsLabel}</td><td style="padding:12px 16px;text-align:right;color:#333;border-bottom:1px solid #e8ede9">${data.num_guests}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
@@ -475,7 +485,7 @@ function buildConfirmedGuestEmailHtml(data: BookingData): string {
   const nights = countNights(data.check_in, data.check_out);
   const bookingFee = Math.round(data.total_price * 0.5);
   const finalPayment = data.total_price - bookingFee;
-  const addonsRows = buildAddonRows(data.addons);
+  const addonsRows = buildAddonRows(data.addons, lang);
 
   return `<!DOCTYPE html>
 <html lang="${lang}">
@@ -501,7 +511,7 @@ function buildConfirmedGuestEmailHtml(data: BookingData): string {
     <!-- Booking details -->
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8faf9;border-radius:8px;margin-bottom:24px">
       <tr><td style="padding:12px 16px;font-weight:600;color:#1a3a2a;border-bottom:1px solid #e8ede9">${t.refLabel}</td><td style="padding:12px 16px;text-align:right;border-bottom:1px solid #e8ede9;font-weight:600;color:#1a3a2a;font-size:16px">${data.reference}</td></tr>
-      <tr><td style="padding:12px 16px;color:#555;border-bottom:1px solid #e8ede9">${t.datesLabel}</td><td style="padding:12px 16px;text-align:right;color:#333;border-bottom:1px solid #e8ede9">${formatDate(data.check_in)} — ${formatDate(data.check_out)} (${nights} ${t.nightsLabel})</td></tr>
+      <tr><td style="padding:12px 16px;color:#555;border-bottom:1px solid #e8ede9">${t.datesLabel}</td><td style="padding:12px 16px;text-align:right;color:#333;border-bottom:1px solid #e8ede9">${formatDate(data.check_in, lang)} — ${formatDate(data.check_out, lang)} (${nights} ${t.nightsLabel})</td></tr>
       <tr><td style="padding:12px 16px;color:#555">${t.guestsLabel}</td><td style="padding:12px 16px;text-align:right;color:#333">${data.num_guests}</td></tr>
     </table>
 
@@ -528,14 +538,9 @@ function buildConfirmedGuestEmailHtml(data: BookingData): string {
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term1}</div>
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term2}</div>
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term3}</div>
-    <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:20px">• ${t.term4}</div>
+    <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:24px">• ${t.term4}</div>
 
-    <!-- Contract link — visas både som klickbar länk och som plain-text URL.
-         Plain-text-versionen är försäkring eftersom vissa mailklienter
-         (särskilt Apple Mail på iOS) tappar punkter i domännamn när URL:n
-         ligger inom understruken länk-text. -->
-    <div style="margin-bottom:8px;font-size:14px;line-height:20px">📄 <a href="https://vilhelmina-lodge.vercel.app/bokningsavtal.pdf" style="color:#1a3a2a;text-decoration:underline">${t.contractLink}</a></div>
-    <div style="margin-bottom:24px;font-size:12px;line-height:16px;color:#888;word-break:break-all">https://vilhelmina-lodge.vercel.app/bokningsavtal.pdf</div>
+    <!-- Avtalslänk borttagen — bokningsavtalet hanteras manuellt tills vidare. -->
 
     <div class="text" style="margin-bottom:12px">${t.closing}</div>
     <div style="color:#1a3a2a;font-weight:600;font-size:15px;line-height:22px">${t.team}</div>
@@ -575,7 +580,7 @@ function buildDeclinedGuestEmailHtml(data: BookingData): string {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8faf9;border-radius:8px;margin-bottom:24px">
       <tr><td style="padding:12px 16px;font-weight:600;color:#1a3a2a;border-bottom:1px solid #e8ede9">${t.refLabel}</td><td style="padding:12px 16px;text-align:right;border-bottom:1px solid #e8ede9;color:#1a3a2a">${data.reference}</td></tr>
-      <tr><td style="padding:12px 16px;color:#555;border-bottom:1px solid #e8ede9">${t.datesLabel}</td><td style="padding:12px 16px;text-align:right;color:#333;border-bottom:1px solid #e8ede9">${formatDate(data.check_in)} — ${formatDate(data.check_out)} (${nights} ${t.nightsLabel})</td></tr>
+      <tr><td style="padding:12px 16px;color:#555;border-bottom:1px solid #e8ede9">${t.datesLabel}</td><td style="padding:12px 16px;text-align:right;color:#333;border-bottom:1px solid #e8ede9">${formatDate(data.check_in, lang)} — ${formatDate(data.check_out, lang)} (${nights} ${t.nightsLabel})</td></tr>
       <tr><td style="padding:12px 16px;color:#555">${t.guestsLabel}</td><td style="padding:12px 16px;text-align:right;color:#333">${data.num_guests}</td></tr>
     </table>
 
@@ -597,6 +602,11 @@ function buildDeclinedGuestEmailHtml(data: BookingData): string {
 // ============================================================
 
 async function sendEmail(to: string, subject: string, html: string) {
+  // Strippa avslutande blanksteg/tabbar på varje rad. Annars quoted-printable-
+  // kodas de till "=20" som kan läcka ut som synlig text i mailet (t.ex. tomma
+  // rader med indrag mellan HTML-block).
+  const cleanHtml = html.replace(/[ \t]+(\r?\n)/g, "$1");
+
   const client = new SMTPClient({
     connection: {
       hostname: SMTP_HOST,
@@ -611,7 +621,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       to,
       subject,
       content: "auto",
-      html,
+      html: cleanHtml,
     });
   } finally {
     await client.close();
@@ -711,6 +721,12 @@ serve(async (req) => {
   // Browser-preflight (CORS) — måste svara 200 utan body
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // E-post är tillfälligt avstängd (se EMAILS_ENABLED högst upp).
+  // Svara OK utan att skicka, så varken webhook eller admin-UI får fel.
+  if (!EMAILS_ENABLED) {
+    return jsonResponse({ ok: true, skipped: true, reason: "emails disabled" });
   }
 
   try {

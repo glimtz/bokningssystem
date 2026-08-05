@@ -427,6 +427,248 @@ const hasDateConflict = (booking, allBookings) => {
   })
 }
 
+// ============================================================
+// NEW BOOKING MODAL — Skapa bokning direkt i admin
+// ============================================================
+
+const NewBookingModal = ({ onClose, onCreated }) => {
+  const [settings, setSettings] = useState({})
+  const [allAddons, setAllAddons] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    name: '', email: '', phone: '', language: 'sv',
+    check_in: '', check_out: '', num_guests: 2, status: 'confirmed', message: '',
+  })
+  // addonSel: { [addonId]: { selected, days, dates: [] } }
+  const [addonSel, setAddonSel] = useState({})
+  // Specialpris: skriv över det beräknade lodge-priset
+  const [useSpecialPrice, setUseSpecialPrice] = useState(false)
+  const [specialLodgeTotal, setSpecialLodgeTotal] = useState('')
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [s, a] = await Promise.all([api.getSettings(), api.getAddons()])
+        setSettings(s || {})
+        setAllAddons(a || [])
+      } catch (err) {
+        console.error('Failed to load modal data:', err)
+      } finally { setLoading(false) }
+    })()
+  }, [])
+
+  const nights = api.nightsBetween(form.check_in, form.check_out)
+  const numGuests = parseInt(form.num_guests, 10) || 1
+  const perNight = api.lodgePricePerNight(numGuests, settings)
+  const lodgeTotal = nights > 0 ? perNight * nights : 0
+  const deposit = parseInt(settings.deposit_amount) || 5000
+  const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
+
+  const stayDates = () => {
+    if (!form.check_in || !form.check_out || nights <= 0) return []
+    const out = []
+    const d = new Date(form.check_in + 'T00:00:00')
+    const end = new Date(form.check_out + 'T00:00:00')
+    while (d < end) {
+      out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+      d.setDate(d.getDate() + 1)
+    }
+    return out
+  }
+
+  const addonQty = (a) => {
+    const sel = addonSel[a.id]
+    if (a.price_type === 'per_day') return sel?.days || nights || 1
+    if (a.price_type === 'per_person') return numGuests
+    return 1
+  }
+  const addonLineTotal = (a) => addonSel[a.id]?.selected ? api.addonRowTotal(a, { quantity: addonQty(a), numGuests }) : 0
+  const addonsTotal = allAddons.reduce((s, a) => s + addonLineTotal(a), 0)
+  // Effektivt lodge-pris: specialpris om det är påslaget, annars beräknat pris
+  const specialLodgeNum = Math.max(0, parseInt(specialLodgeTotal, 10) || 0)
+  const effectiveLodgeTotal = useSpecialPrice ? specialLodgeNum : lodgeTotal
+  const total = effectiveLodgeTotal + addonsTotal
+
+  // Slå på specialpris och förifyll med det beräknade priset som utgångspunkt
+  const toggleSpecialPrice = (on) => {
+    setUseSpecialPrice(on)
+    if (on && !specialLodgeTotal) setSpecialLodgeTotal(String(lodgeTotal || 0))
+  }
+
+  const toggleAddon = (id) => setAddonSel(prev => ({
+    ...prev,
+    [id]: { ...(prev[id] || {}), selected: !prev[id]?.selected, days: prev[id]?.days ?? (nights || 1), dates: prev[id]?.dates || [] },
+  }))
+  const setAddonDays = (id, days) => setAddonSel(prev => {
+    const cur = prev[id] || {}
+    const d = Math.max(1, parseInt(days, 10) || 1)
+    let dates = cur.dates || []
+    if (dates.length > d) dates = dates.slice(0, d)
+    return { ...prev, [id]: { ...cur, days: d, dates } }
+  })
+  const toggleAddonDate = (id, dStr, maxDays) => setAddonSel(prev => {
+    const cur = prev[id] || {}
+    const dates = cur.dates || []
+    let next
+    if (dates.includes(dStr)) next = dates.filter(x => x !== dStr)
+    else { if (dates.length >= maxDays) return prev; next = [...dates, dStr].sort() }
+    return { ...prev, [id]: { ...cur, dates: next } }
+  })
+
+  const submit = async () => {
+    if (!form.name.trim() || !form.email.trim()) { alert('Namn och e-post krävs.'); return }
+    if (!form.check_in || !form.check_out) { alert('Ange in- och utcheckningsdatum.'); return }
+    if (new Date(form.check_out) <= new Date(form.check_in)) { alert('Utcheckning måste vara efter incheckning.'); return }
+    setSaving(true)
+    try {
+      const addons = allAddons.filter(a => addonSel[a.id]?.selected).map(a => {
+        const quantity = addonQty(a)
+        const sel = addonSel[a.id]
+        return {
+          addon_id: a.id,
+          quantity,
+          unit_price: a.price,
+          total_price: api.addonRowTotal(a, { quantity, numGuests }),
+          selected_dates: (a.price_type === 'per_day' && sel.dates?.length) ? sel.dates : null,
+        }
+      })
+      const specialNote = useSpecialPrice
+        ? `Specialpris för lodge: ${formatPrice(effectiveLodgeTotal)} (ordinarie ${formatPrice(lodgeTotal)})`
+        : null
+      const res = await api.createBooking({
+        guest: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), language: form.language, marketing_consent: false },
+        booking: { check_in: form.check_in, check_out: form.check_out, num_guests: numGuests, message: form.message || null, status: form.status, admin_notes: specialNote },
+        addons,
+        pricing: { lodge_total: effectiveLodgeTotal, addons_total: addonsTotal, total_price: total, deposit_amount: deposit },
+      })
+      onCreated(res.id)
+    } catch (err) { alert('Kunde inte skapa bokning: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', zIndex: 1000, overflowY: 'auto' }
+  const panel = { background: 'var(--admin-card-bg, #fff)', color: 'var(--admin-text, inherit)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '560px', boxShadow: '0 10px 40px rgba(0,0,0,0.25)' }
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={panel} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ margin: 0 }}>Ny bokning</h2>
+          <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={onClose}>✕</button>
+        </div>
+
+        {loading ? <div className="admin-loading">Laddar…</div> : (
+          <>
+            <h3 style={{ marginTop: 0 }}>Gäst</h3>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Namn *</span>
+              <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={{ width: '60%' }} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>E-post *</span>
+              <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={{ width: '60%' }} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Telefon</span>
+              <input type="text" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} style={{ width: '60%' }} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Språk</span>
+              <select value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))}>
+                <option value="sv">SV</option><option value="en">EN</option><option value="de">DE</option><option value="fr">FR</option>
+              </select></label>
+
+            <h3>Bokning</h3>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Incheckning *</span>
+              <input type="date" value={form.check_in} onChange={e => setForm(f => ({ ...f, check_in: e.target.value }))} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Utcheckning *</span>
+              <input type="date" value={form.check_out} onChange={e => setForm(f => ({ ...f, check_out: e.target.value }))} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Gäster</span>
+              <input type="number" min="1" max={parseInt(settings.max_guests) || 8} value={form.num_guests}
+                onChange={e => setForm(f => ({ ...f, num_guests: e.target.value }))} style={{ width: '80px', textAlign: 'right' }} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Status</span>
+              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                {statusOptions.filter(o => o.value !== 'all').map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select></label>
+
+            <h3>Tillval</h3>
+            {allAddons.length === 0 && <div className="detail-row"><span style={{ color: 'var(--admin-text-muted)' }}>Inga tillval tillgängliga</span></div>}
+            {allAddons.map(a => {
+              const name = a.translations?.sv?.name || a.translations?.en?.name || a.slug
+              const sel = addonSel[a.id]
+              const isPerDay = a.price_type === 'per_day'
+              return (
+                <div key={a.id} style={{ borderTop: '1px solid var(--admin-border, #eee)', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                  <label className="detail-row" style={{ alignItems: 'center', borderTop: 'none' }}>
+                    <span>
+                      <input type="checkbox" checked={!!sel?.selected} onChange={() => toggleAddon(a.id)} style={{ marginRight: '0.5rem' }} />
+                      {name}
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-text-muted)', marginLeft: '1.5rem' }}>
+                        {isPerDay ? 'Per dag' : a.price_type === 'per_person' ? `Per person (× ${numGuests})` : 'Fast pris'} · {formatPrice(a.price)}
+                      </span>
+                    </span>
+                    <strong>{formatPrice(addonLineTotal(a))}</strong>
+                  </label>
+                  {sel?.selected && isPerDay && (
+                    <div style={{ marginLeft: '1.5rem', marginTop: '0.35rem' }}>
+                      <label style={{ fontSize: '0.8rem' }}>Antal dagar:{' '}
+                        <input type="number" min="1" max={nights || 1} value={sel.days || nights || 1}
+                          onChange={e => setAddonDays(a.id, e.target.value)} style={{ width: '60px', textAlign: 'right' }} />
+                      </label>
+                      {nights > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.35rem' }}>
+                          {stayDates().map(dStr => {
+                            const chosen = (sel.dates || []).includes(dStr)
+                            return (
+                              <button key={dStr} type="button"
+                                className={`admin-btn admin-btn-xs ${chosen ? 'admin-btn-confirm' : 'admin-btn-secondary'}`}
+                                onClick={() => toggleAddonDate(a.id, dStr, sel.days || nights || 1)}>
+                                {new Date(dStr + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            <div style={{ borderTop: '2px solid var(--admin-border, #ddd)', marginTop: '1rem', paddingTop: '0.75rem' }}>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>
+                  <input type="checkbox" checked={useSpecialPrice} onChange={e => toggleSpecialPrice(e.target.checked)} style={{ marginRight: '0.5rem' }} />
+                  Specialpris för lodge
+                </span>
+              </label>
+              {useSpecialPrice ? (
+                <label className="detail-row" style={{ alignItems: 'center' }}>
+                  <span>Lodge (specialpris)
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>
+                      Ordinarie: {formatPrice(lodgeTotal)} ({nights > 0 ? nights : 0} nätter)
+                    </span>
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input type="number" min="0" step="1" value={specialLodgeTotal}
+                      onChange={e => setSpecialLodgeTotal(e.target.value)}
+                      style={{ width: '110px', textAlign: 'right' }} />
+                    <span style={{ color: 'var(--admin-text-muted)' }}>kr</span>
+                  </span>
+                </label>
+              ) : (
+                <div className="detail-row"><span>Lodge ({nights > 0 ? nights : 0} nätter)</span><strong>{formatPrice(lodgeTotal)}</strong></div>
+              )}
+              <div className="detail-row"><span>Tillval</span><strong>{formatPrice(addonsTotal)}</strong></div>
+              <div className="detail-row total"><span>Totalt</span><strong>{formatPrice(total)}</strong></div>
+              <div className="detail-row"><span>Deposition</span><strong>{formatPrice(deposit)}</strong></div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={submit} disabled={saving}>{saving ? 'Skapar…' : 'Skapa bokning'}</button>
+              <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={onClose} disabled={saving}>Avbryt</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const BookingsPage = () => {
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
@@ -434,6 +676,7 @@ const BookingsPage = () => {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [showNew, setShowNew] = useState(false)
 
   const loadBookings = useCallback(async () => {
     setLoading(true)
@@ -458,7 +701,17 @@ const BookingsPage = () => {
 
   return (
     <div>
-      <h1 className="admin-page-title">Bokningar</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <h1 className="admin-page-title" style={{ margin: 0 }}>Bokningar</h1>
+        <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => setShowNew(true)}>+ Ny bokning</button>
+      </div>
+
+      {showNew && (
+        <NewBookingModal
+          onClose={() => setShowNew(false)}
+          onCreated={(bid) => { setShowNew(false); navigate(`/admin/bookings/${bid}`) }}
+        />
+      )}
 
       <div className="admin-toolbar">
         <div className="admin-search">
@@ -549,15 +802,32 @@ const BookingDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editingPrice, setEditingPrice] = useState(false)
+  const [priceForm, setPriceForm] = useState({ total_price: '', deposit_amount: '', reason: '' })
+  const [savingPrice, setSavingPrice] = useState(false)
+  const [settings, setSettings] = useState({})
+  const [allAddons, setAllAddons] = useState([])
+  const [editingGuest, setEditingGuest] = useState(false)
+  const [guestForm, setGuestForm] = useState({ name: '', email: '', phone: '', language: 'sv', marketing_consent: false })
+  const [savingGuest, setSavingGuest] = useState(false)
+  const [editingDetails, setEditingDetails] = useState(false)
+  const [detailsForm, setDetailsForm] = useState({ check_in: '', check_out: '', num_guests: 1 })
+  const [savingDetails, setSavingDetails] = useState(false)
+  const [editingAddons, setEditingAddons] = useState(false)
+  const [addAddonId, setAddAddonId] = useState('')
 
   const loadBooking = useCallback(async () => {
     try {
-      const [data, all] = await Promise.all([
+      const [data, all, settingsData, addonsData] = await Promise.all([
         api.getBookingById(id),
         api.getBookings({ status: 'all', limit: 500 }),
+        api.getSettings(),
+        api.getAddons(),
       ])
       setBooking(data)
       setAllBookings(all.data)
+      setSettings(settingsData || {})
+      setAllAddons(addonsData || [])
       setNotes(data.admin_notes || '')
     } catch (err) {
       console.error('Failed to load booking:', err)
@@ -632,6 +902,169 @@ const BookingDetailPage = () => {
     }
   }
 
+  const startEditPrice = () => {
+    setPriceForm({
+      total_price: booking.total_price ?? 0,
+      deposit_amount: booking.deposit_amount ?? 0,
+      reason: '',
+    })
+    setEditingPrice(true)
+  }
+
+  const savePrice = async () => {
+    const total = parseInt(priceForm.total_price, 10)
+    const deposit = parseInt(priceForm.deposit_amount, 10)
+    if (Number.isNaN(total) || total < 0 || Number.isNaN(deposit) || deposit < 0) {
+      alert('Ange giltiga belopp (0 eller högre).')
+      return
+    }
+    setSavingPrice(true)
+    try {
+      await api.updateBookingPrice(id, {
+        total_price: total,
+        deposit_amount: deposit,
+        reason: priceForm.reason,
+      })
+      setEditingPrice(false)
+      loadBooking()
+    } catch (err) {
+      alert('Kunde inte spara priset: ' + err.message)
+    } finally {
+      setSavingPrice(false)
+    }
+  }
+
+  // ── Gästuppgifter ──
+  const startEditGuest = () => {
+    setGuestForm({
+      name: booking.guests?.name || '',
+      email: booking.guests?.email || '',
+      phone: booking.guests?.phone || '',
+      language: booking.guests?.language || 'sv',
+      marketing_consent: !!booking.guests?.marketing_consent,
+    })
+    setEditingGuest(true)
+  }
+  const saveGuest = async () => {
+    if (!guestForm.name.trim() || !guestForm.email.trim()) { alert('Namn och e-post krävs.'); return }
+    setSavingGuest(true)
+    try {
+      await api.updateGuest(booking.guests.id, {
+        name: guestForm.name.trim(),
+        email: guestForm.email.trim(),
+        phone: guestForm.phone.trim() || null,
+        language: guestForm.language,
+        marketing_consent: guestForm.marketing_consent,
+      })
+      setEditingGuest(false)
+      loadBooking()
+    } catch (err) { alert('Kunde inte spara gästuppgifter: ' + err.message) }
+    finally { setSavingGuest(false) }
+  }
+
+  // ── Bokningsdetaljer ──
+  const startEditDetails = () => {
+    setDetailsForm({
+      check_in: booking.check_in?.substring(0, 10) || '',
+      check_out: booking.check_out?.substring(0, 10) || '',
+      num_guests: booking.num_guests || 1,
+    })
+    setEditingDetails(true)
+  }
+  const saveDetails = async () => {
+    const check_in = detailsForm.check_in
+    const check_out = detailsForm.check_out
+    const num_guests = parseInt(detailsForm.num_guests, 10)
+    if (!check_in || !check_out) { alert('Ange in- och utcheckningsdatum.'); return }
+    if (new Date(check_out) <= new Date(check_in)) { alert('Utcheckning måste vara efter incheckning.'); return }
+    if (Number.isNaN(num_guests) || num_guests < 1) { alert('Ange giltigt antal gäster.'); return }
+
+    const changed =
+      check_in !== booking.check_in?.substring(0, 10) ||
+      check_out !== booking.check_out?.substring(0, 10) ||
+      num_guests !== booking.num_guests
+
+    let pricing = null
+    if (changed) {
+      const nights = api.nightsBetween(check_in, check_out)
+      const perNight = api.lodgePricePerNight(num_guests, settings)
+      const newLodge = perNight * nights
+      const addonsTotal = booking.addons_total || 0
+      const recalc = window.confirm(
+        `Räkna om lodge-priset?\n\n` +
+        `Nytt lodge-pris: ${nights} nätter × ${new Intl.NumberFormat('sv-SE').format(perNight)} kr = ${new Intl.NumberFormat('sv-SE').format(newLodge)} kr\n` +
+        `Nuvarande lodge-pris: ${new Intl.NumberFormat('sv-SE').format(booking.lodge_total || 0)} kr\n\n` +
+        `Tillval (${new Intl.NumberFormat('sv-SE').format(addonsTotal)} kr) räknas inte om automatiskt — justera dem separat vid behov.\n\n` +
+        `OK = räkna om lodge + total.  Avbryt = behåll nuvarande priser.`
+      )
+      if (recalc) {
+        pricing = { lodge_total: newLodge, addons_total: addonsTotal, total_price: newLodge + addonsTotal }
+      }
+    }
+
+    setSavingDetails(true)
+    try {
+      await api.updateBookingDetails(id, { check_in, check_out, num_guests, pricing })
+      setEditingDetails(false)
+      loadBooking()
+    } catch (err) { alert('Kunde inte spara bokningsdetaljer: ' + err.message) }
+    finally { setSavingDetails(false) }
+  }
+
+  // ── Tillval (full redigering, varje ändring sparas direkt) ──
+  const stayDates = () => {
+    if (!booking.check_in || !booking.check_out) return []
+    const out = []
+    const d = new Date(booking.check_in + 'T00:00:00')
+    const end = new Date(booking.check_out + 'T00:00:00')
+    while (d < end) {
+      out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+      d.setDate(d.getDate() + 1)
+    }
+    return out
+  }
+  const handleAddAddon = async () => {
+    const addon = allAddons.find(a => a.id === addAddonId)
+    if (!addon) return
+    const numGuests = booking.num_guests || 1
+    const nights = api.nightsBetween(booking.check_in, booking.check_out)
+    let quantity = 1
+    if (addon.price_type === 'per_day') quantity = nights || 1
+    else if (addon.price_type === 'per_person') quantity = numGuests
+    const unit_price = addon.price
+    const total_price = api.addonRowTotal(addon, { quantity, numGuests })
+    try {
+      await api.addBookingAddon(id, { addon_id: addon.id, quantity, unit_price, total_price, selected_dates: null })
+      setAddAddonId('')
+      loadBooking()
+    } catch (err) { alert('Kunde inte lägga till tillval: ' + err.message) }
+  }
+  const handleRemoveAddon = async (ba) => {
+    if (!window.confirm('Ta bort detta tillval?')) return
+    try { await api.deleteBookingAddon(ba.id, id); loadBooking() }
+    catch (err) { alert('Kunde inte ta bort tillval: ' + err.message) }
+  }
+  const handleAddonQty = async (ba, newQty) => {
+    const qty = Math.max(1, parseInt(newQty, 10) || 1)
+    const numGuests = booking.num_guests || 1
+    const total_price = api.addonRowTotal({ price_type: ba.addons?.price_type, unit_price: ba.unit_price }, { quantity: qty, numGuests })
+    let selected_dates = ba.selected_dates || null
+    if (selected_dates && selected_dates.length > qty) selected_dates = selected_dates.slice(0, qty)
+    try { await api.updateBookingAddon(ba.id, id, { quantity: qty, total_price, selected_dates }); loadBooking() }
+    catch (err) { alert('Kunde inte ändra antal: ' + err.message) }
+  }
+  const handleToggleAddonDate = async (ba, dateStr) => {
+    const current = ba.selected_dates || []
+    let next
+    if (current.includes(dateStr)) next = current.filter(d => d !== dateStr)
+    else {
+      if (current.length >= ba.quantity) { alert(`Du kan välja högst ${ba.quantity} dagar. Öka antalet först.`); return }
+      next = [...current, dateStr].sort()
+    }
+    try { await api.updateBookingAddon(ba.id, id, { selected_dates: next }); loadBooking() }
+    catch (err) { alert('Kunde inte uppdatera dagar: ' + err.message) }
+  }
+
   const handlePayment = async (type, label) => {
     const confirmed = window.confirm(`Markera "${label}" som mottagen för bokning ${booking.reference}?`)
     if (!confirmed) return
@@ -693,55 +1126,240 @@ const BookingDetailPage = () => {
 
       <div className="detail-grid">
         <div className="detail-card">
-          <h3>Gästuppgifter</h3>
-          <div className="detail-row"><span>Namn</span><strong>{booking.guests?.name}</strong></div>
-          <div className="detail-row"><span>E-post</span><strong>{booking.guests?.email}</strong></div>
-          <div className="detail-row"><span>Telefon</span><strong>{booking.guests?.phone || '—'}</strong></div>
-          <div className="detail-row"><span>Språk</span><strong>{booking.guests?.language?.toUpperCase()}</strong></div>
-          {booking.guests?.marketing_consent && <div className="detail-row"><span>Marknadsföring</span><strong>Ja</strong></div>}
-        </div>
-
-        <div className="detail-card">
-          <h3>Bokningsdetaljer</h3>
-          <div className="detail-row"><span>Incheckning</span><strong>{formatDate(booking.check_in)}</strong></div>
-          <div className="detail-row"><span>Utcheckning</span><strong>{formatDate(booking.check_out)}</strong></div>
-          <div className="detail-row"><span>Nätter</span><strong>{nightCount}</strong></div>
-          <div className="detail-row"><span>Gäster</span><strong>{booking.num_guests}</strong></div>
-          <div className="detail-row"><span>Skapad</span><strong>{formatDate(booking.created_at)}</strong></div>
-        </div>
-
-        <div className="detail-card">
-          <h3>Priser</h3>
-          <div className="detail-row"><span>Lodge</span><strong>{formatPrice(booking.lodge_total)}</strong></div>
-          <div className="detail-row"><span>Tillval</span><strong>{formatPrice(booking.addons_total)}</strong></div>
-          <div className="detail-row total"><span>Totalt</span><strong>{formatPrice(booking.total_price)}</strong></div>
-          <div className="detail-row"><span>Deposition</span><strong>{formatPrice(booking.deposit_amount)}</strong></div>
-        </div>
-
-        {booking.booking_addons?.length > 0 && (
-          <div className="detail-card">
-            <h3>Tillval</h3>
-            {booking.booking_addons.map(ba => {
-              const addonName = ba.addons?.translations?.sv?.name || ba.addons?.translations?.en?.name || ba.addons?.slug
-              const hasSelectedDates = ba.selected_dates && ba.selected_dates.length > 0
-              return (
-                <div key={ba.id}>
-                  <div className="detail-row">
-                    <span>{addonName} × {ba.quantity}</span>
-                    <strong>{formatPrice(ba.total_price)}</strong>
-                  </div>
-                  {hasSelectedDates && (
-                    <div className="detail-row" style={{ borderTop: 'none', paddingTop: 0 }}>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>
-                        Valda dagar: {ba.selected_dates.map(d => new Date(d + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })).join(', ')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>Gästuppgifter</h3>
+            {!editingGuest && (
+              <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={startEditGuest}>Justera</button>
+            )}
           </div>
-        )}
+          {editingGuest ? (
+            <div style={{ marginTop: '0.75rem' }}>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Namn</span>
+                <input type="text" value={guestForm.name} onChange={e => setGuestForm(f => ({ ...f, name: e.target.value }))} style={{ width: '60%' }} />
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>E-post</span>
+                <input type="email" value={guestForm.email} onChange={e => setGuestForm(f => ({ ...f, email: e.target.value }))} style={{ width: '60%' }} />
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Telefon</span>
+                <input type="text" value={guestForm.phone} onChange={e => setGuestForm(f => ({ ...f, phone: e.target.value }))} style={{ width: '60%' }} />
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Språk</span>
+                <select value={guestForm.language} onChange={e => setGuestForm(f => ({ ...f, language: e.target.value }))}>
+                  <option value="sv">SV</option>
+                  <option value="en">EN</option>
+                  <option value="de">DE</option>
+                  <option value="fr">FR</option>
+                </select>
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Marknadsföring</span>
+                <input type="checkbox" checked={guestForm.marketing_consent} onChange={e => setGuestForm(f => ({ ...f, marketing_consent: e.target.checked }))} />
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={saveGuest} disabled={savingGuest}>{savingGuest ? 'Sparar…' : 'Spara'}</button>
+                <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setEditingGuest(false)} disabled={savingGuest}>Avbryt</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="detail-row"><span>Namn</span><strong>{booking.guests?.name}</strong></div>
+              <div className="detail-row"><span>E-post</span><strong>{booking.guests?.email}</strong></div>
+              <div className="detail-row"><span>Telefon</span><strong>{booking.guests?.phone || '—'}</strong></div>
+              <div className="detail-row"><span>Språk</span><strong>{booking.guests?.language?.toUpperCase()}</strong></div>
+              {booking.guests?.marketing_consent && <div className="detail-row"><span>Marknadsföring</span><strong>Ja</strong></div>}
+            </>
+          )}
+        </div>
+
+        <div className="detail-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>Bokningsdetaljer</h3>
+            {!editingDetails && (
+              <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={startEditDetails}>Justera</button>
+            )}
+          </div>
+          {editingDetails ? (
+            <div style={{ marginTop: '0.75rem' }}>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Incheckning</span>
+                <input type="date" value={detailsForm.check_in} onChange={e => setDetailsForm(f => ({ ...f, check_in: e.target.value }))} />
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Utcheckning</span>
+                <input type="date" value={detailsForm.check_out} onChange={e => setDetailsForm(f => ({ ...f, check_out: e.target.value }))} />
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Gäster</span>
+                <input type="number" min="1" max={parseInt(settings.max_guests) || 8} value={detailsForm.num_guests}
+                  onChange={e => setDetailsForm(f => ({ ...f, num_guests: e.target.value }))} style={{ width: '80px', textAlign: 'right' }} />
+              </label>
+              <p style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', margin: '0.5rem 0 0.75rem 0' }}>
+                Vid ändrat datum eller antal gäster får du en fråga om lodge-priset ska räknas om.
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={saveDetails} disabled={savingDetails}>{savingDetails ? 'Sparar…' : 'Spara'}</button>
+                <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setEditingDetails(false)} disabled={savingDetails}>Avbryt</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="detail-row"><span>Incheckning</span><strong>{formatDate(booking.check_in)}</strong></div>
+              <div className="detail-row"><span>Utcheckning</span><strong>{formatDate(booking.check_out)}</strong></div>
+              <div className="detail-row"><span>Nätter</span><strong>{nightCount}</strong></div>
+              <div className="detail-row"><span>Gäster</span><strong>{booking.num_guests}</strong></div>
+              <div className="detail-row"><span>Skapad</span><strong>{formatDate(booking.created_at)}</strong></div>
+            </>
+          )}
+        </div>
+
+        <div className="detail-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>Priser</h3>
+            {!editingPrice && (
+              <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={startEditPrice}>Justera</button>
+            )}
+          </div>
+
+          {editingPrice ? (
+            <div style={{ marginTop: '0.75rem' }}>
+              <div className="detail-row"><span>Lodge</span><strong>{formatPrice(booking.lodge_total)}</strong></div>
+              <div className="detail-row"><span>Tillval</span><strong>{formatPrice(booking.addons_total)}</strong></div>
+              <label className="detail-row total" style={{ alignItems: 'center' }}>
+                <span>Totalt</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <input type="number" min="0" step="100" value={priceForm.total_price}
+                    onChange={e => setPriceForm(f => ({ ...f, total_price: e.target.value }))}
+                    style={{ width: '110px', textAlign: 'right' }} />
+                  <span>kr</span>
+                </span>
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Deposition</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <input type="number" min="0" step="100" value={priceForm.deposit_amount}
+                    onChange={e => setPriceForm(f => ({ ...f, deposit_amount: e.target.value }))}
+                    style={{ width: '110px', textAlign: 'right' }} />
+                  <span>kr</span>
+                </span>
+              </label>
+              <div style={{ marginTop: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--admin-text-muted)', marginBottom: '0.25rem' }}>
+                  Anledning (valfritt — sparas i anteckningar)
+                </label>
+                <input type="text" value={priceForm.reason} placeholder="T.ex. Rabatt återkommande gäst"
+                  onChange={e => setPriceForm(f => ({ ...f, reason: e.target.value }))}
+                  style={{ width: '100%', boxSizing: 'border-box' }} />
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', margin: '0.5rem 0 0.75rem 0' }}>
+                Betalningarna (50 % / 50 %) räknas om automatiskt utifrån det nya totalpriset.
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={savePrice} disabled={savingPrice}>
+                  {savingPrice ? 'Sparar…' : 'Spara'}
+                </button>
+                <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setEditingPrice(false)} disabled={savingPrice}>
+                  Avbryt
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="detail-row"><span>Lodge</span><strong>{formatPrice(booking.lodge_total)}</strong></div>
+              <div className="detail-row"><span>Tillval</span><strong>{formatPrice(booking.addons_total)}</strong></div>
+              <div className="detail-row total"><span>Totalt</span><strong>{formatPrice(booking.total_price)}</strong></div>
+              <div className="detail-row"><span>Deposition</span><strong>{formatPrice(booking.deposit_amount)}</strong></div>
+            </>
+          )}
+        </div>
+
+        <div className="detail-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>Tillval</h3>
+            <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={() => setEditingAddons(v => !v)}>
+              {editingAddons ? 'Klar' : 'Justera'}
+            </button>
+          </div>
+
+          {(!booking.booking_addons || booking.booking_addons.length === 0) && !editingAddons && (
+            <div className="detail-row"><span style={{ color: 'var(--admin-text-muted)' }}>Inga tillval</span></div>
+          )}
+
+          {booking.booking_addons?.map(ba => {
+            const addonName = ba.addons?.translations?.sv?.name || ba.addons?.translations?.en?.name || ba.addons?.slug
+            const priceType = ba.addons?.price_type
+            const isPerDay = priceType === 'per_day'
+            const hasSelectedDates = ba.selected_dates && ba.selected_dates.length > 0
+            return (
+              <div key={ba.id} style={{ borderTop: '1px solid var(--admin-border, #eee)', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                <div className="detail-row" style={{ borderTop: 'none', alignItems: 'center' }}>
+                  <span>
+                    {addonName}
+                    {!editingAddons && <> × {ba.quantity}</>}
+                    {editingAddons && (
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>
+                        {isPerDay ? 'Per dag' : priceType === 'per_person' ? `Per person (× ${booking.num_guests})` : 'Fast pris'} · {formatPrice(ba.unit_price)}
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    {editingAddons && isPerDay && (
+                      <input type="number" min="1" max={nightCount} value={ba.quantity}
+                        onChange={e => handleAddonQty(ba, e.target.value)}
+                        style={{ width: '60px', textAlign: 'right' }} />
+                    )}
+                    <strong>{formatPrice(ba.total_price)}</strong>
+                    {editingAddons && (
+                      <button className="admin-btn admin-btn-decline admin-btn-xs" onClick={() => handleRemoveAddon(ba)}>Ta bort</button>
+                    )}
+                  </span>
+                </div>
+
+                {editingAddons && isPerDay ? (
+                  <div style={{ marginTop: '0.35rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)' }}>Valda dagar ({(ba.selected_dates || []).length}/{ba.quantity}):</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.35rem' }}>
+                      {stayDates().map(dStr => {
+                        const chosen = (ba.selected_dates || []).includes(dStr)
+                        return (
+                          <button key={dStr} type="button"
+                            className={`admin-btn admin-btn-xs ${chosen ? 'admin-btn-confirm' : 'admin-btn-secondary'}`}
+                            onClick={() => handleToggleAddonDate(ba, dStr)}>
+                            {new Date(dStr + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : hasSelectedDates && (
+                  <div className="detail-row" style={{ borderTop: 'none', paddingTop: 0 }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>
+                      Valda dagar: {ba.selected_dates.map(d => new Date(d + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })).join(', ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {editingAddons && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', borderTop: '1px dashed var(--admin-border, #ddd)', paddingTop: '0.75rem' }}>
+              <select value={addAddonId} onChange={e => setAddAddonId(e.target.value)} style={{ flex: 1 }}>
+                <option value="">Lägg till tillval…</option>
+                {allAddons
+                  .filter(a => !booking.booking_addons?.some(ba => ba.addon_id === a.id))
+                  .map(a => {
+                    const name = a.translations?.sv?.name || a.translations?.en?.name || a.slug
+                    return <option key={a.id} value={a.id}>{name} ({formatPrice(a.price)})</option>
+                  })}
+              </select>
+              <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={handleAddAddon} disabled={!addAddonId}>Lägg till</button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="detail-card" style={{ marginTop: '1rem' }}>
@@ -901,12 +1519,15 @@ const CalendarPage = () => {
     const to = newBlocked.toDate || from
     const reason = newBlocked.reason || 'Blockerad'
 
-    // Generate all dates in range
+    // Generate all dates in range. Formatera i LOKAL tid — toISOString() ger UTC,
+    // vilket i tidszoner öster om UTC (t.ex. svensk sommartid, UTC+2) flyttar
+    // datumet en dag bakåt så att fel dag blockeras.
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const dates = []
     const current = new Date(from + 'T00:00:00')
     const end = new Date(to + 'T00:00:00')
     while (current <= end) {
-      dates.push(current.toISOString().split('T')[0])
+      dates.push(fmt(current))
       current.setDate(current.getDate() + 1)
     }
 
@@ -920,7 +1541,6 @@ const CalendarPage = () => {
       }
       setBlocked(prev => [...prev, ...results])
       setNewBlocked({ fromDate: '', toDate: '', reason: '' })
-      setNewBlocked({ date: '', reason: '' })
     } catch (err) {
       alert('Kunde inte blockera datum: ' + err.message)
     }
@@ -957,7 +1577,8 @@ const CalendarPage = () => {
     let bestStatus = null
     let bestPriority = -1
     for (const b of bookings) {
-      if (dateStr >= toDateStr(b.check_in) && dateStr < toDateStr(b.check_out)) {
+      // check_out day is treated as occupied (cleaning time) — matches public calendar and hasDateConflict
+      if (dateStr >= toDateStr(b.check_in) && dateStr <= toDateStr(b.check_out)) {
         const prio = statusPriority[b.status] || 0
         if (prio > bestPriority) {
           bestStatus = b.status
@@ -973,7 +1594,8 @@ const CalendarPage = () => {
     let best = null
     let bestPriority = -1
     for (const b of bookings) {
-      if (dateStr >= toDateStr(b.check_in) && dateStr < toDateStr(b.check_out)) {
+      // check_out day is treated as occupied (cleaning time) — matches public calendar and hasDateConflict
+      if (dateStr >= toDateStr(b.check_in) && dateStr <= toDateStr(b.check_out)) {
         const prio = statusPriority[b.status] || 0
         if (prio > bestPriority) {
           best = b

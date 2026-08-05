@@ -123,6 +123,49 @@ export async function updateBookingNotes(id, admin_notes) {
   return data
 }
 
+// Justera priset på en bokning. Uppdaterar total_price och/eller deposit_amount.
+// Betalningarna (bokningsavgift/slutbetalning) räknas ut dynamiskt som
+// total_price * 0.5 i UI:t, så de följer automatiskt med det nya priset —
+// ingen separat uppdatering av betalningsrader behövs.
+//
+// Om `reason` anges loggas ändringen som en rad i admin_notes med datum och
+// gamla → nya belopp, så prisjusteringar blir spårbara utan schemaändring.
+export async function updateBookingPrice(id, { total_price, deposit_amount, reason }) {
+  const { data: current, error: fetchError } = await supabase
+    .from('bookings')
+    .select('total_price, deposit_amount, admin_notes')
+    .eq('id', id)
+    .single()
+  if (fetchError) throw fetchError
+
+  const update = {}
+  if (total_price != null) update.total_price = total_price
+  if (deposit_amount != null) update.deposit_amount = deposit_amount
+
+  if (reason && reason.trim()) {
+    const stamp = new Date().toLocaleDateString('sv-SE')
+    const parts = []
+    if (total_price != null && total_price !== current.total_price) {
+      parts.push(`totalpris ${current.total_price} → ${total_price} kr`)
+    }
+    if (deposit_amount != null && deposit_amount !== current.deposit_amount) {
+      parts.push(`deposition ${current.deposit_amount} → ${deposit_amount} kr`)
+    }
+    const changeText = parts.length ? ` (${parts.join(', ')})` : ''
+    const logLine = `[${stamp}] Pris justerat${changeText}: ${reason.trim()}`
+    update.admin_notes = current.admin_notes ? `${current.admin_notes}\n${logLine}` : logLine
+  }
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .update(update)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 // Registrera eller ångra en betalning på en bokning.
 // type:   'advance' | 'final' | 'deposit_paid' | 'deposit_refunded'
 // paidAt: ISO-timestamp (sätt till null för att ångra)
@@ -202,6 +245,174 @@ export async function deleteBooking(id) {
     .eq('id', id)
 
   if (error) throw error
+}
+
+// ============================================================
+// BOOKING EDITING — Gäst, detaljer, tillval, skapa bokning
+// ============================================================
+
+// Prishjälpare (speglar logiken i det publika flödet, BookingApp.jsx).
+// Lodge-pris/natt = max(pris_per_person × antal_gäster, min_pris).
+export function lodgePricePerNight(numGuests, settings) {
+  const perPerson = parseInt(settings?.price_per_person_per_night) || 950
+  const minPrice = parseInt(settings?.min_price_per_night) || 4000
+  return Math.max(perPerson * (numGuests || 1), minPrice)
+}
+
+export function nightsBetween(checkIn, checkOut) {
+  if (!checkIn || !checkOut) return 0
+  return Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000)
+}
+
+// Radtotal för ett tillval utifrån dess price_type.
+// per_day → pris × antal dagar; per_person → pris × antal gäster; flat → pris.
+// Accepterar både addons-rader (fält `price`) och booking_addons-rader (fält `unit_price`).
+export function addonRowTotal(addon, { quantity, numGuests }) {
+  const price = addon.unit_price != null ? addon.unit_price : addon.price
+  if (addon.price_type === 'per_person') return price * (numGuests || 1)
+  if (addon.price_type === 'flat') return price
+  return price * (quantity || 1) // per_day (default)
+}
+
+// Uppdatera gästuppgifter (guests-raden kopplad till bokningen).
+export async function updateGuest(guestId, fields) {
+  const update = {}
+  for (const k of ['name', 'email', 'phone', 'language', 'marketing_consent']) {
+    if (k in fields) update[k] = fields[k]
+  }
+  const { data, error } = await supabase
+    .from('guests').update(update).eq('id', guestId).select().single()
+  if (error) throw error
+  return data
+}
+
+// Uppdatera bokningsdetaljer (datum + antal gäster). Om `pricing` anges
+// (t.ex. omräknat lodge/total) skrivs även de prisfälten i samma anrop.
+export async function updateBookingDetails(id, { check_in, check_out, num_guests, pricing } = {}) {
+  const update = {}
+  if (check_in != null) update.check_in = check_in
+  if (check_out != null) update.check_out = check_out
+  if (num_guests != null) update.num_guests = num_guests
+  if (pricing) {
+    if (pricing.lodge_total != null) update.lodge_total = pricing.lodge_total
+    if (pricing.addons_total != null) update.addons_total = pricing.addons_total
+    if (pricing.total_price != null) update.total_price = pricing.total_price
+  }
+  const { data, error } = await supabase
+    .from('bookings').update(update).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
+// Räkna om addons_total + total_price från aktuella booking_addons och lodge_total.
+export async function recalcBookingTotal(bookingId) {
+  const { data: b, error: be } = await supabase
+    .from('bookings').select('lodge_total').eq('id', bookingId).single()
+  if (be) throw be
+  const { data: rows, error: re } = await supabase
+    .from('booking_addons').select('total_price').eq('booking_id', bookingId)
+  if (re) throw re
+  const addons_total = (rows || []).reduce((s, r) => s + (r.total_price || 0), 0)
+  const total_price = (b.lodge_total || 0) + addons_total
+  const { data, error } = await supabase
+    .from('bookings').update({ addons_total, total_price }).eq('id', bookingId).select().single()
+  if (error) throw error
+  return data
+}
+
+// Lägg till ett tillval på en bokning. Räknar om bokningens total efteråt.
+export async function addBookingAddon(bookingId, { addon_id, quantity, unit_price, total_price, selected_dates }) {
+  const { error } = await supabase.from('booking_addons').insert({
+    booking_id: bookingId,
+    addon_id,
+    quantity,
+    unit_price,
+    total_price,
+    selected_dates: selected_dates && selected_dates.length ? selected_dates : null,
+  })
+  if (error) throw error
+  return recalcBookingTotal(bookingId)
+}
+
+// Uppdatera ett befintligt tillval (antal, pris, valda dagar). Räknar om total.
+export async function updateBookingAddon(bookingAddonId, bookingId, fields) {
+  const update = {}
+  for (const k of ['quantity', 'unit_price', 'total_price', 'selected_dates']) {
+    if (k in fields) {
+      update[k] = k === 'selected_dates'
+        ? (fields[k] && fields[k].length ? fields[k] : null)
+        : fields[k]
+    }
+  }
+  const { error } = await supabase.from('booking_addons').update(update).eq('id', bookingAddonId)
+  if (error) throw error
+  return recalcBookingTotal(bookingId)
+}
+
+// Ta bort ett tillval. Räknar om total.
+export async function deleteBookingAddon(bookingAddonId, bookingId) {
+  const { error } = await supabase.from('booking_addons').delete().eq('id', bookingAddonId)
+  if (error) throw error
+  return recalcBookingTotal(bookingId)
+}
+
+// Skapa en bokning direkt i admin (t.ex. telefon-/mejlbokning).
+// Skapar guest + booking + booking_addons. Status kan sättas fritt.
+// OBS: INSERT på bookings triggar mail-webhooken (booking_received) — när
+// mailen är påslagna (EMAILS_ENABLED) får gästen alltså ett mottagningsmail.
+export async function createBooking({ guest, booking, addons, pricing }) {
+  const { data: guestData, error: guestError } = await supabase
+    .from('guests').insert({
+      name: guest.name,
+      email: guest.email,
+      phone: guest.phone || null,
+      language: guest.language || 'sv',
+      gdpr_consent: true,
+      gdpr_consent_at: new Date().toISOString(),
+      marketing_consent: guest.marketing_consent || false,
+    }).select().single()
+  if (guestError) throw guestError
+
+  const ts = {}
+  const nowIso = new Date().toISOString()
+  if (booking.status === 'confirmed') ts.confirmed_at = nowIso
+  if (booking.status === 'paid') { ts.confirmed_at = nowIso; ts.paid_at = nowIso }
+  if (booking.status === 'completed') { ts.confirmed_at = nowIso; ts.paid_at = nowIso }
+
+  // Tvinga prisfälten till giltiga heltal — NaN/undefined blir 0, aldrig null.
+  const num = (v) => (Number.isFinite(v) ? Math.round(v) : 0)
+
+  const { data: bookingData, error: bookingError } = await supabase
+    .from('bookings').insert({
+      guest_id: guestData.id,
+      check_in: booking.check_in,
+      check_out: booking.check_out,
+      num_guests: booking.num_guests,
+      message: booking.message || null,
+      admin_notes: booking.admin_notes || null,
+      status: booking.status || 'confirmed',
+      lodge_total: num(pricing.lodge_total),
+      addons_total: num(pricing.addons_total),
+      total_price: num(pricing.total_price),
+      deposit_amount: num(pricing.deposit_amount) || 5000,
+      ...ts,
+    }).select().single()
+  if (bookingError) throw bookingError
+
+  if (addons && addons.length > 0) {
+    const rows = addons.map(a => ({
+      booking_id: bookingData.id,
+      addon_id: a.addon_id,
+      quantity: a.quantity,
+      unit_price: a.unit_price,
+      total_price: a.total_price,
+      selected_dates: a.selected_dates && a.selected_dates.length ? a.selected_dates : null,
+    }))
+    const { error: addonsError } = await supabase.from('booking_addons').insert(rows)
+    if (addonsError) throw addonsError
+  }
+
+  return { id: bookingData.id, reference: bookingData.reference }
 }
 
 // ============================================================

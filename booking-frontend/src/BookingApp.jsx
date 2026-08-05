@@ -33,6 +33,7 @@ const translations = {
       nextBtn: 'Contact details',
       prevBtn: 'Dates',
       howManyDays: 'How many days?',
+      guideGroupHint: 'Choose a fishing and/or hunting guide.',
       selectWhichDays: 'Select which days',
       day: 'day',
       days: 'days',
@@ -46,6 +47,7 @@ const translations = {
       items: {
         boat: { name: 'Boat rental', description: 'Alloycraft J370 with 10 hp outboard motor. Trailer included.', unit: 'per day' },
         guide: { name: 'Fishing guide', description: 'Full day with a private fishing guide. Lunch included.', unit: 'per day' },
+        guide_hunting: { name: 'Hunting guide', description: 'Full day with a private hunting guide. Lunch included.', unit: 'per day' },
         linens: { name: 'Bed linens & towels', description: 'Fresh bed linens and towels for each guest.', unit: 'per person' },
         cleaning: { name: 'Final cleaning', description: 'Professional cleaning after your stay.', unit: '' },
       },
@@ -124,6 +126,7 @@ const translations = {
       nextBtn: 'Kontaktuppgifter',
       prevBtn: 'Datum',
       howManyDays: 'Hur många dagar?',
+      guideGroupHint: 'Välj fiske- och/eller jaktguide.',
       selectWhichDays: 'Välj vilka dagar',
       day: 'dag',
       days: 'dagar',
@@ -137,6 +140,7 @@ const translations = {
       items: {
         boat: { name: 'Båthyra', description: 'Alloycraft J370 med 10 hk utombordsmotor. Trailer ingår.', unit: 'per dag' },
         guide: { name: 'Fiskeguide', description: 'Heldag med privat fiskeguide. Lunch ingår.', unit: 'per dag' },
+        guide_hunting: { name: 'Jaktguide', description: 'Heldag med privat jaktguide. Lunch ingår.', unit: 'per dag' },
         linens: { name: 'Sänglinnen & handdukar', description: 'Fräscha sänglinnen och handdukar för varje gäst.', unit: 'per person' },
         cleaning: { name: 'Slutstädning', description: 'Professionell städning efter er vistelse.', unit: '' },
       },
@@ -215,6 +219,7 @@ const translations = {
       nextBtn: 'Kontaktdaten',
       prevBtn: 'Datum',
       howManyDays: 'Wie viele Tage?',
+      guideGroupHint: 'Wählen Sie einen Angel- und/oder Jagdguide.',
       selectWhichDays: 'Tage auswählen',
       day: 'Tag',
       days: 'Tage',
@@ -228,6 +233,7 @@ const translations = {
       items: {
         boat: { name: 'Bootsverleih', description: 'Alloycraft J370 mit 10-PS-Außenbordmotor. Trailer inklusive.', unit: 'pro Tag' },
         guide: { name: 'Angel-Guide', description: 'Ganztägig mit privatem Angel-Guide. Mittagessen inklusive.', unit: 'pro Tag' },
+        guide_hunting: { name: 'Jagdguide', description: 'Ganztägig mit privatem Jagdguide. Mittagessen inklusive.', unit: 'pro Tag' },
         linens: { name: 'Bettwäsche & Handtücher', description: 'Frische Bettwäsche und Handtücher für jeden Gast.', unit: 'pro Person' },
         cleaning: { name: 'Endreinigung', description: 'Professionelle Reinigung nach Ihrem Aufenthalt.', unit: '' },
       },
@@ -306,6 +312,7 @@ const translations = {
       nextBtn: 'Coordonnées',
       prevBtn: 'Dates',
       howManyDays: 'Combien de jours ?',
+      guideGroupHint: 'Choisissez un guide de pêche et/ou de chasse.',
       selectWhichDays: 'Sélectionnez les jours',
       day: 'jour',
       days: 'jours',
@@ -319,6 +326,7 @@ const translations = {
       items: {
         boat: { name: 'Location de bateau', description: 'Alloycraft J370 avec moteur hors-bord 10 CV. Remorque incluse.', unit: 'par jour' },
         guide: { name: 'Guide de pêche', description: 'Journée complète avec un guide de pêche privé. Déjeuner inclus.', unit: 'par jour' },
+        guide_hunting: { name: 'Guide de chasse', description: 'Journée complète avec guide de chasse privé. Déjeuner inclus.', unit: 'par jour' },
         linens: { name: 'Draps & serviettes', description: 'Draps et serviettes propres pour chaque personne.', unit: 'par personne' },
         cleaning: { name: 'Ménage final', description: 'Nettoyage professionnel après votre séjour.', unit: '' },
       },
@@ -390,6 +398,7 @@ const getAddonsList = (dbAddons) => {
     return [
       { id: 'boat', name: 'Boat rental', price: 1000, type: 'perDay' },
       { id: 'guide', name: 'Fishing guide', price: 8000, type: 'perDay' },
+      { id: 'guide_hunting', name: 'Hunting guide', price: 8000, type: 'perDay' },
       { id: 'linens', name: 'Bed linens & towels', price: 150, type: 'perPerson' },
       { id: 'cleaning', name: 'Final cleaning', price: 1200, type: 'flat' },
     ];
@@ -429,7 +438,7 @@ const useBooking = () => {
 const initialState = {
   currentStep: 0,
   dates: { checkIn: null, checkOut: null },
-  addons: { boat: { selected: false, days: 0, selectedDates: [] }, guide: { selected: false, days: 0, selectedDates: [] }, linens: { selected: false }, cleaning: { selected: false } },
+  addons: { boat: { selected: false, days: 0, selectedDates: [] }, guide: { selected: false, days: 0, selectedDates: [] }, guide_hunting: { selected: false, days: 0, selectedDates: [] }, linens: { selected: false }, cleaning: { selected: false } },
   guests: { count: 2, name: '', email: '', phone: '', message: '', gdprConsent: false, marketingConsent: false },
   dbAddons: [],       // Addons loaded from Supabase (with UUIDs)
   blockedDates: [],   // Blocked dates from Supabase
@@ -443,7 +452,15 @@ const bookingReducer = (state, action) => {
     case 'SET_STEP': return { ...state, currentStep: action.payload };
     case 'NEXT_STEP': return { ...state, currentStep: state.currentStep + 1 };
     case 'PREV_STEP': return { ...state, currentStep: Math.max(0, state.currentStep - 1) };
-    case 'SET_DATES': return { ...state, dates: action.payload, addons: { ...state.addons, boat: { ...state.addons.boat, days: 0, selectedDates: [] }, guide: { ...state.addons.guide, days: 0, selectedDates: [] } } };
+    case 'SET_DATES': {
+      // Nollställ dagar/valda datum för alla dag-baserade tillval (de som har selectedDates)
+      const addons = {};
+      for (const key of Object.keys(state.addons)) {
+        const a = state.addons[key];
+        addons[key] = ('selectedDates' in a) ? { ...a, days: 0, selectedDates: [] } : a;
+      }
+      return { ...state, dates: action.payload, addons };
+    }
     case 'TOGGLE_ADDON': {
       const id = action.payload, curr = state.addons[id];
       if (curr.selected) {
@@ -458,7 +475,7 @@ const bookingReducer = (state, action) => {
     }
     case 'SET_ADDON_DAYS': {
       const { addonId, days } = action.payload, addon = state.addons[addonId], update = { ...addon, days };
-      if ((addonId === 'guide' || addonId === 'boat') && addon.selectedDates) {
+      if (addon.selectedDates) {
         update.selectedDates = addon.selectedDates.slice(0, days);
       }
       return { ...state, addons: { ...state.addons, [addonId]: update } };
@@ -540,12 +557,27 @@ const StepDates = () => {
 
   const isBookedNight = (date) => bookedNights.has(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
 
-  // Check if a range from checkIn to a candidate checkOut crosses any booked night
+  // Manuellt blockerade datum från admin (blocked_dates) — array av 'YYYY-MM-DD'.
+  const blockedSet = useMemo(() => {
+    const s = new Set();
+    (state.blockedDates || []).forEach(dstr => {
+      if (!dstr) return;
+      const d = new Date(dstr.substring(0, 10) + 'T00:00:00');
+      s.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+    });
+    return s;
+  }, [state.blockedDates]);
+  const isBlocked = (date) => blockedSet.has(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
+
+  // Otillgänglig dag = bokad natt ELLER manuellt blockerad
+  const isUnavailable = (date) => isBookedNight(date) || isBlocked(date);
+
+  // Check if a range from checkIn to a candidate checkOut crosses any unavailable night
   const rangeHasConflict = (from, to) => {
     const d = new Date(from);
     d.setDate(d.getDate() + 1); // first night after check-in
     while (d < to) {
-      if (isBookedNight(d)) return true;
+      if (isUnavailable(d)) return true;
       d.setDate(d.getDate() + 1);
     }
     return false;
@@ -555,7 +587,7 @@ const StepDates = () => {
     const clicked = new Date(viewYear, viewMonth, day);
     if (!checkIn || (checkIn && checkOut)) {
       // Selecting check-in: allowed if the night is not booked
-      if (isBookedNight(clicked)) return;
+      if (isUnavailable(clicked)) return;
       dispatch({ type: 'SET_DATES', payload: { checkIn: clicked, checkOut: null } });
     } else {
       if (clicked > checkIn) {
@@ -563,7 +595,7 @@ const StepDates = () => {
         if (rangeHasConflict(checkIn, clicked)) return;
         dispatch({ type: 'SET_DATES', payload: { checkIn, checkOut: clicked } });
       } else {
-        if (isBookedNight(clicked)) return;
+        if (isUnavailable(clicked)) return;
         dispatch({ type: 'SET_DATES', payload: { checkIn: clicked, checkOut: null } });
       }
     }
@@ -574,7 +606,7 @@ const StepDates = () => {
     const date = new Date(viewYear, viewMonth, day), classes = ['calendar-day'];
     if (isSameDay(date, today)) classes.push('today');
     if (date < today || date.getMonth() < 4 || date.getMonth() > 8) { classes.push('disabled'); return classes.join(' '); }
-    if (isBookedNight(date)) { classes.push('booked'); return classes.join(' '); }
+    if (isUnavailable(date)) { classes.push('booked'); return classes.join(' '); }
     if (isSameDay(date, checkIn)) { classes.push('selected'); if (checkOut) classes.push('range-start'); } else if (isSameDay(date, checkOut)) {
       classes.push('selected', 'range-end');
     } else if (checkIn && checkOut && date > checkIn && date < checkOut) { classes.push('in-range'); }
@@ -624,7 +656,7 @@ const StepDates = () => {
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1, date = new Date(viewYear, viewMonth, day);
             const isOutOfSeason = date < today || date.getMonth() < 4 || date.getMonth() > 8;
-            const isBooked = isBookedNight(date);
+            const isBooked = isUnavailable(date);
             const bookedStyle = isBooked ? {
               background: '#EDEAE3',
               color: '#A8A49B',
@@ -676,7 +708,68 @@ const StepAddons = () => {
   };
 
   const stayDates = getStayDates();
-  const showDatePicker = (addonId) => { const a = state.addons[addonId]; return a.selected && a.days > 0 && a.days < nightCount; };
+  const showDatePicker = (addonId) => { const a = state.addons[addonId]; return a && a.selected && a.days > 0 && a.days < nightCount; };
+
+  // Renderar ett enskilt tillvalskort (kryssruta + ev. dagv\u00e4ljare + datumv\u00e4ljare).
+  // Anv\u00e4nds b\u00e5de i den vanliga listan och inuti det grupperade Guide-kortet.
+  const renderAddonCard = (addon) => {
+    const addonState = state.addons[addon.id];
+    if (!addonState) return null;
+    const isSelected = addonState.selected;
+    const addonT = t(`addons.items.${addon.id}`);
+    const name = typeof addonT === 'object' ? addonT.name : addon.name;
+    const description = typeof addonT === 'object' ? addonT.description : addon.description;
+    const unitLabel = typeof addonT === 'object' && addonT.unit ? addonT.unit : (addon.type === 'perDay' ? t('addons.perDay') : addon.type === 'perPerson' ? t('addons.perPerson') : '');
+    const isPerDay = addon.type === 'perDay';
+    return (
+      <div key={addon.id} className="addon-card-wrapper">
+        <div className={`addon-card ${isSelected ? 'selected' : ''}`} onClick={() => dispatch({ type: 'TOGGLE_ADDON', payload: addon.id })}>
+          <div className="addon-checkbox">{isSelected && '\u2713'}</div>
+          <div className="addon-info">
+            <div className="addon-name">{name}</div>
+            <div className="addon-description">{description}</div>
+            <div className="addon-price">{formatPrice(addon.price)} <span>{unitLabel}</span></div>
+          </div>
+        </div>
+        {isSelected && isPerDay && nightCount > 0 && (
+          <div className="addon-day-selector">
+            <label className="addon-day-label">{t('addons.howManyDays')}</label>
+            <div className="day-counter">
+              <button onClick={() => dispatch({ type: 'SET_ADDON_DAYS', payload: { addonId: addon.id, days: Math.max(1, addonState.days - 1) } })} disabled={addonState.days <= 1}>&minus;</button>
+              <span className="day-count">{addonState.days} {addonState.days === 1 ? t('addons.day') : t('addons.days')}</span>
+              <button onClick={() => dispatch({ type: 'SET_ADDON_DAYS', payload: { addonId: addon.id, days: Math.min(nightCount, addonState.days + 1) } })} disabled={addonState.days >= nightCount}>+</button>
+            </div>
+            <div className="addon-day-total">{formatPrice(addon.price * addonState.days)}</div>
+          </div>
+        )}
+        {isSelected && addon.type === 'perPerson' && (
+          <div className="addon-day-selector">
+            <span className="addon-day-label">{guestCount} {guestCount === 1 ? t('addons.guest') : t('addons.guests')}</span>
+            <div className="addon-day-total">{formatPrice(addon.price * guestCount)}</div>
+          </div>
+        )}
+        {isSelected && addon.type === 'flat' && (
+          <div className="addon-day-selector">
+            <span className="addon-day-label">{t('addons.flatFee')}</span>
+            <div className="addon-day-total">{formatPrice(addon.price)}</div>
+          </div>
+        )}
+        {isPerDay && showDatePicker(addon.id) && (
+          <div className="guide-date-picker">
+            <label className="addon-day-label">{t('addons.selectWhichDays')} ({addonState.selectedDates.length}/{addonState.days})</label>
+            <div className="guide-date-grid">
+              {stayDates.map((date) => {
+                const dateStr = toDateString(date), addonDates = addonState.selectedDates, isChosen = addonDates.includes(dateStr), isFull = addonDates.length >= addonState.days && !isChosen;
+                return <button key={dateStr} className={`guide-date-btn ${isChosen ? 'chosen' : ''} ${isFull ? 'disabled' : ''}`} onClick={() => toggleAddonDate(addon.id, dateStr)} disabled={isFull}>{formatDateShort(date)}</button>;
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const guideOptions = addons.filter(a => a.id === 'guide' || a.id === 'guide_hunting');
 
   return (
     <div>
@@ -684,56 +777,21 @@ const StepAddons = () => {
       <p className="step-description">{t('addons.description')}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
         {addons.map((addon) => {
-          const addonState = state.addons[addon.id], isSelected = addonState.selected, addonT = t(`addons.items.${addon.id}`);
-          const name = typeof addonT === 'object' ? addonT.name : addon.name, description = typeof addonT === 'object' ? addonT.description : addon.description;
-          const unitLabel = typeof addonT === 'object' && addonT.unit ? addonT.unit : (addon.type === 'perDay' ? t('addons.perDay') : addon.type === 'perPerson' ? t('addons.perPerson') : '');
-          const isPerDay = addon.type === 'perDay';
-          return (
-            <div key={addon.id} className="addon-card-wrapper">
-              <div className={`addon-card ${isSelected ? 'selected' : ''}`} onClick={() => dispatch({ type: 'TOGGLE_ADDON', payload: addon.id })}>
-                <div className="addon-checkbox">{isSelected && '\u2713'}</div>
-                <div className="addon-info">
-                  <div className="addon-name">{name}</div>
-                  <div className="addon-description">{description}</div>
-                  <div className="addon-price">{formatPrice(addon.price)} <span>{unitLabel}</span></div>
+          // Jaktguiden renderas inuti det grupperade Guide-kortet
+          if (addon.id === 'guide_hunting') return null;
+          // Guide-kortet: gruppera fiske- och jaktguide under en rubrik
+          if (addon.id === 'guide') {
+            return (
+              <div key="guide-group" className="addon-group" style={{ border: '1px solid var(--color-border, #e2ddd0)', borderRadius: '14px', padding: 'var(--space-md, 1rem)', display: 'flex', flexDirection: 'column', gap: 'var(--space-md, 0.75rem)' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>Guide</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted, #8a8578)' }}>{t('addons.guideGroupHint')}</div>
                 </div>
+                {guideOptions.map(g => renderAddonCard(g))}
               </div>
-              {isSelected && isPerDay && nightCount > 0 && (
-                <div className="addon-day-selector">
-                  <label className="addon-day-label">{t('addons.howManyDays')}</label>
-                  <div className="day-counter">
-                    <button onClick={() => dispatch({ type: 'SET_ADDON_DAYS', payload: { addonId: addon.id, days: Math.max(1, addonState.days - 1) } })} disabled={addonState.days <= 1}>&minus;</button>
-                    <span className="day-count">{addonState.days} {addonState.days === 1 ? t('addons.day') : t('addons.days')}</span>
-                    <button onClick={() => dispatch({ type: 'SET_ADDON_DAYS', payload: { addonId: addon.id, days: Math.min(nightCount, addonState.days + 1) } })} disabled={addonState.days >= nightCount}>+</button>
-                  </div>
-                  <div className="addon-day-total">{formatPrice(addon.price * addonState.days)}</div>
-                </div>
-              )}
-              {isSelected && addon.type === 'perPerson' && (
-                <div className="addon-day-selector">
-                  <span className="addon-day-label">{guestCount} {guestCount === 1 ? t('addons.guest') : t('addons.guests')}</span>
-                  <div className="addon-day-total">{formatPrice(addon.price * guestCount)}</div>
-                </div>
-              )}
-              {isSelected && addon.type === 'flat' && (
-                <div className="addon-day-selector">
-                  <span className="addon-day-label">{t('addons.flatFee')}</span>
-                  <div className="addon-day-total">{formatPrice(addon.price)}</div>
-                </div>
-              )}
-              {(addon.id === 'guide' || addon.id === 'boat') && showDatePicker(addon.id) && (
-                <div className="guide-date-picker">
-                  <label className="addon-day-label">{t('addons.selectWhichDays')} ({state.addons[addon.id].selectedDates.length}/{state.addons[addon.id].days})</label>
-                  <div className="guide-date-grid">
-                    {stayDates.map((date) => {
-                      const dateStr = toDateString(date), addonDates = state.addons[addon.id].selectedDates, isChosen = addonDates.includes(dateStr), isFull = addonDates.length >= state.addons[addon.id].days && !isChosen;
-                      return <button key={dateStr} className={`guide-date-btn ${isChosen ? 'chosen' : ''} ${isFull ? 'disabled' : ''}`} onClick={() => toggleAddonDate(addon.id, dateStr)} disabled={isFull}>{formatDateShort(date)}</button>;
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
+            );
+          }
+          return renderAddonCard(addon);
         })}
       </div>
       <div className="step-nav">
@@ -854,7 +912,7 @@ const StepSummary = () => {
             quantity,
             unit_price: addon.price,
             total_price: getAddonTotal(addon),
-            selected_dates: (addon.id === 'guide' || addon.id === 'boat') && addonState.selectedDates?.length > 0
+            selected_dates: addon.type === 'perDay' && addonState.selectedDates?.length > 0
               ? addonState.selectedDates
               : null,
           };

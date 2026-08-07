@@ -27,8 +27,8 @@ const translations = {
         },
         lillstuga: {
           name: 'The Little Cabin',
-          description: 'The sleeping cabin, plus the sauna, relaxation and BBQ areas — you have the whole property to yourselves; the main cabin simply stays closed. Ideal for 1–2 anglers.',
-          features: ['Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
+          description: 'The sleeping cabin with a small kitchen, plus the sauna, relaxation and BBQ areas — you have the whole property to yourselves and access to an incinerating toilet; the main cabin simply stays closed. Ideal for 1–2 anglers.',
+          features: ['Sleeping cabin', 'Small kitchen', 'Sauna & relaxation', 'Grill hut & outdoor BBQ', 'Incinerating toilet'],
         },
       },
     },
@@ -136,8 +136,8 @@ const translations = {
         },
         lillstuga: {
           name: 'Lillstugan',
-          description: 'Sovstugan, plus bastu, relax och grillplatserna — ni har hela fastigheten för er själva; storstugan står bara stängd. Perfekt för 1–2 fiskare.',
-          features: ['Lillstugan (sovstuga)', 'Bastu & relax', 'Grillkåta & utegrill'],
+          description: 'Sovstugan med ett litet kök, plus bastu, relax och grillplatserna — ni har hela fastigheten för er själva och tillgång till en förbränningstoalett; storstugan står bara stängd. Perfekt för 1–2 fiskare.',
+          features: ['Lillstugan (sovstuga)', 'Litet kök', 'Bastu & relax', 'Grillkåta & utegrill', 'Förbränningstoalett'],
         },
       },
     },
@@ -245,8 +245,8 @@ const translations = {
         },
         lillstuga: {
           name: 'Die kleine Hütte',
-          description: 'Die Schlafhütte samt Sauna, Entspannung und Grillplätzen — Sie haben das gesamte Anwesen für sich allein; die Haupthütte bleibt einfach geschlossen. Ideal für 1–2 Angler.',
-          features: ['Schlafhütte', 'Sauna & Entspannung', 'Grillkota & Außengrill'],
+          description: 'Die Schlafhütte mit einer kleinen Küche, samt Sauna, Entspannung und Grillplätzen — Sie haben das gesamte Anwesen für sich allein und Zugang zu einer Verbrennungstoilette; die Haupthütte bleibt einfach geschlossen. Ideal für 1–2 Angler.',
+          features: ['Schlafhütte', 'Kleine Küche', 'Sauna & Entspannung', 'Grillkota & Außengrill', 'Verbrennungstoilette'],
         },
       },
     },
@@ -354,8 +354,8 @@ const translations = {
         },
         lillstuga: {
           name: 'Le petit chalet',
-          description: 'Le chalet de couchage, plus le sauna, la détente et les espaces barbecue — vous avez toute la propriété rien que pour vous ; le chalet principal reste simplement fermé. Idéal pour 1 à 2 pêcheurs.',
-          features: ['Chalet de couchage', 'Sauna & détente', 'Hutte-barbecue & barbecue ext.'],
+          description: 'Le chalet de couchage avec une petite cuisine, plus le sauna, la détente et les espaces barbecue — vous avez toute la propriété rien que pour vous, ainsi qu’un accès à des toilettes à incinération ; le chalet principal reste simplement fermé. Idéal pour 1 à 2 pêcheurs.',
+          features: ['Chalet de couchage', 'Petite cuisine', 'Sauna & détente', 'Hutte-barbecue & barbecue ext.', 'Toilettes à incinération'],
         },
       },
     },

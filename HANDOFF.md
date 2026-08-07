@@ -2,7 +2,27 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-05-14
+> Senast uppdaterad: 2026-08-07
+
+---
+
+## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-08-07)
+
+Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
+
+- **Vercel är nu kopplat till GitHub (2026-08-07)** — auto-deploy vid varje push till `main`.
+  Root Directory är satt till `booking-frontend`, framework-preset Vite. Manuell `vercel --prod`
+  behövs inte längre. Detta var tidigare en av de största punkterna på "att göra"-listan.
+- **Custom domän live:** `booking.flightmode.se` är konfigurerad på Vercel (utöver `vilhelmina-lodge.vercel.app`).
+- **Hunting guide / jaktguide** tillagd som eget tillval (migration `003_add_hunting_guide.sql`).
+  I det publika flödet grupperas fiskeguide + jaktguide i ett gemensamt "Guide"-kort.
+- **Admin kan nu skapa och redigera bokningar fullt ut** (stort tillägg i `AdminApp.jsx` + `adminApi.js`):
+  - "+ Ny bokning"-modal för att skapa bokning direkt i admin, med **specialpris för lodge** (2026-08-05).
+  - Redigera gästuppgifter, datum/antal gäster, samt lägga till/ändra/ta bort tillval på en befintlig bokning.
+  - Justera pris manuellt med en angiven anledning (loggas i `admin_notes`).
+- **Line-endings normaliserade till LF** via `.gitattributes` (2026-07-03) — CRLF-bruset i `git status` är åtgärdat.
+
+Detaljer finns i respektive avsnitt nedan.
 
 ---
 
@@ -15,7 +35,8 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 - **Supabase-projekt:** mqarsrzwwttgccwiwkir
 - **Supabase URL:** https://mqarsrzwwttgccwiwkir.supabase.co
 - **Vercel URL (publik bokning):** https://vilhelmina-lodge.vercel.app
-- **Admin-dashboard:** https://vilhelmina-lodge.vercel.app/admin
+- **Custom domän:** https://booking.flightmode.se
+- **Admin-dashboard:** https://vilhelmina-lodge.vercel.app/admin (även `/admin` på custom-domänen)
 - **Ägare:** Leif Gyllenberg (leif.gyllenberg@gmail.com)
 
 ## 2. Techstack
@@ -26,13 +47,25 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 | Backend/DB | Supabase (PostgreSQL 15+ med RLS) |
 | Admin-auth | Supabase Auth (email/password) |
 | E-post | Supabase Edge Function + Loopia SMTP (denomailer) |
-| Hosting | **Vercel** (https://vilhelmina-lodge.vercel.app) — manuell deploy via `npx vercel --prod` |
+| Hosting | **Vercel** — **auto-deploy vid push till `main`** (GitHub-kopplat sedan 2026-08-07). Root Directory: `booking-frontend`. Custom domän: booking.flightmode.se |
 | Repo | GitHub (glimtz/bokningssystem) |
 
 ## 3. Git-historik
 
 ```
-(2026-05-14 dagens arbete — ej committat ännu)
+09ebac5 Add special price option to admin New booking modal (2026-08-05)
+        ⚠️ Stor "catch-all"-commit trots titeln. Innehåller även: hunting guide-tillval
+        (migration 003_add_hunting_guide.sql), full bokningsredigering i admin
+        (adminApi.js: updateBookingDetails/updateGuest/addBookingAddon/updateBookingAddon/
+        deleteBookingAddon/updateBookingPrice/recalcBookingTotal/createBooking m.fl.),
+        guide-gruppering i publika flödet (BookingApp.jsx), samt mindre ändringar i
+        e-postfunktionen (index.ts).
+608f9fe chore: add .gitattributes and normalize line endings to LF (2026-07-03)
+dae58aa docs: add pointer to HANDOFF.md at top of Claude.md (2026-07-03)
+--- allt ovan pushat; origin/main = 09ebac5 ---
+f405346 fix: show contract URL as plain text alongside link (iOS Mail) (2026-05-28)
+7282f7a fix: booking reference generator uses MAX instead of COUNT (2026-05-14)  [migration 003_fix_reference_generator.sql]
+d19ae0e feat: admin enhancements, payment tracking, status emails (2026-05-14)
 aa47f71 docs: update handoff with reset script (2026-05-13)
 aab3010 fix: rewrite verification query using subqueries to avoid 'rows' keyword conflict
 2cb1a53 chore: add SQL script to reset test bookings before going live
@@ -53,6 +86,10 @@ a03bc3b feat: add Supabase database schema for booking system
 e59ba88 feat: booking request system for Vilhelmina Lodge
 ```
 
+> ⚠️ **Migrationsnummer-krock:** det finns två filer som börjar på `003` —
+> `003_fix_reference_generator.sql` (maj) och `003_add_hunting_guide.sql` (aug).
+> Ofarligt eftersom de körs manuellt i SQL Editor, men döp gärna om till 004 vid tillfälle.
+
 ## 4. Mappstruktur
 
 ```
@@ -60,6 +97,7 @@ Bokningssystem/
 ├── Claude.md                          # Leifs profil och preferenser för Claude
 ├── HANDOFF.md                         # Denna fil
 ├── README.txt
+├── .gitattributes                     # text=auto eol=lf (normaliserar line-endings)
 ├── kravspec-bokningssystem.md         # Kravspecifikation
 ├── databasschema.md                   # Databasdesign-dokumentation
 ├── flightmode-adventures.md           # Företagsbeskrivning
@@ -67,10 +105,10 @@ Bokningssystem/
 │   └── workflows/
 │       └── keep-supabase-alive.yml   # GitHub Action — pingar Supabase var 5:e dag
 ├── .gitignore
-├── booking-frontend/
+├── booking-frontend/                  # ← Vercel Root Directory pekar hit
 │   ├── .env                           # Supabase-credentials (INTE i git)
 │   ├── .env.example                   # Mall för .env
-│   ├── .vercel/                       # Vercel-konfiguration (INTE i git)
+│   ├── .vercel/                       # Vercel CLI-koppling (INTE i git — behövs ej längre)
 │   ├── vercel.json                    # SPA-rewrites (alla routes → index.html)
 │   ├── package.json                   # React 19, Vite 8, supabase-js, react-router-dom 7
 │   ├── vite.config.js
@@ -82,11 +120,11 @@ Bokningssystem/
 │   │   └── bokningsavtal.pdf         # Statiskt avtal som länkas i confirmation-mail
 │   ├── src/
 │   │   ├── main.jsx                   # Entry point + React Router (/, /admin/*)
-│   │   ├── BookingApp.jsx             # Publikt bokningsflöde — 4-stegs wizard (~1000 rader)
+│   │   ├── BookingApp.jsx             # Publikt bokningsflöde — 4-stegs wizard
 │   │   ├── api.js                     # Supabase API för publika queries + booking creation
 │   │   ├── supabaseClient.js          # Supabase-klient init
 │   │   ├── admin/
-│   │   │   ├── AdminApp.jsx           # Admin-dashboard (~1280 rader, 6 sidor)
+│   │   │   ├── AdminApp.jsx           # Admin-dashboard (skapa/redigera bokningar, priser, säsonger)
 │   │   │   ├── adminApi.js            # Supabase API för admin (autentiserad)
 │   │   │   └── admin.css              # Stilar för dashboard
 │   │   ├── App.jsx / App.css          # Äldre filer (används ej aktivt)
@@ -95,12 +133,14 @@ Bokningssystem/
 │   │   ├── context/
 │   │   ├── data/
 │   │   └── i18n/                      # Översättningar (en, sv, de, fr)
-│   └── dist/                          # Build-output
+│   └── dist/                          # Build-output (INTE i git)
 └── supabase/
     ├── .gitignore
     ├── migrations/
-    │   ├── 001_initial_schema.sql     # Databas-schema (10 tabeller, RLS, seed data)
-    │   └── 002_payment_tracking.sql   # Lägger till advance_paid_at / final_paid_at / deposit_paid_at / deposit_refunded_at
+    │   ├── 001_initial_schema.sql            # Databas-schema (10 tabeller, RLS, seed data)
+    │   ├── 002_payment_tracking.sql          # advance/final/deposit/refunded timestamps
+    │   ├── 003_fix_reference_generator.sql   # ref-generator använder MAX i st f COUNT
+    │   └── 003_add_hunting_guide.sql         # NYTT tillval guide_hunting (jaktguide)
     ├── scripts/
     │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/
@@ -108,29 +148,32 @@ Bokningssystem/
             └── index.ts               # Edge Function — SMTP-mail för booking_received / booking_confirmed / booking_declined
 ```
 
-## 5. Lokal setup (ny dator)
+## 5. Lokal setup (ny dator — t.ex. BasecampOne)
 
 ### 5.1 Förutsättningar
 - **Node.js** (LTS) — https://nodejs.org — ger dig `npm`
-- **Git** — för att klona repot
+- **Git** — för att klona repot (GitHub Desktop räcker; se not om PATH i 5.7)
 
 ### 5.2 Klona och installera
 
 ```bash
-cd Documents\Claude\Flightmode Adventures
 git clone https://github.com/glimtz/bokningssystem.git Bokningssystem
-cd Bokningssystem\booking-frontend
+cd Bokningssystem/booking-frontend
 npm install
 ```
 
 ### 5.3 Skapa .env-fil
 
-Skapa filen `booking-frontend/.env` med:
+`.env`-filerna ligger **inte** i GitHub (de innehåller hemligheter). Kopiera över dem från den gamla
+datorn, eller återskapa `booking-frontend/.env` med:
 
 ```
 VITE_SUPABASE_URL=https://mqarsrzwwttgccwiwkir.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xYXJzcnp3d3R0Z2Njd2l3a2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NzUxNjQsImV4cCI6MjA5MTE1MTE2NH0.CmI70NyaYr1NWzjpgAndMbeGvqab-LXiq0NIgX1kusE
 ```
+
+> Det finns även en `.env.local` i projektroten på den gamla datorn (också gitignorerad). Ta med den
+> om du använder rot-nivå-verktyg (t.ex. Supabase CLI-secrets); den behövs inte för att köra frontend.
 
 ### 5.4 Starta dev-server
 
@@ -142,21 +185,20 @@ npm run dev
 - Publikt flöde: http://localhost:5173
 - Admin-dashboard: http://localhost:5173/admin
 
-### 5.5 Vercel-deploy (redan kopplat)
+### 5.5 Deploy till produktion (Vercel — nu automatiskt)
 
-Frontend är deployad på Vercel. Env-variabler (VITE_SUPABASE_URL och VITE_SUPABASE_ANON_KEY) är konfigurerade i Vercel. För att deploya ändringar:
+**Sedan 2026-08-07 är Vercel-projektet kopplat till GitHub-repot.** Det betyder:
 
-```bash
-cd booking-frontend
-npx vercel login          # Krävs första gången på ny dator — öppnar webbläsaren
-npx vercel --prod         # Bygger och deployar till produktion
-```
-
-`vercel.json` sköter SPA-rewrites så att `/admin` och andra klient-routes pekar på `index.html`.
+- **Pusha till `main` → Vercel bygger och deployar automatiskt till produktion.** Inget manuellt steg.
+- Vercel-inställningar (redan gjorda, för referens): Settings → Git = `glimtz/bokningssystem`,
+  Settings → Build and Deployment → **Root Directory = `booking-frontend`**, Framework = Vite,
+  Build = `npm run build`, Output = `dist`. Env-variabler (VITE_SUPABASE_URL/ANON_KEY) ligger i Vercel.
+- Verifiera en deploy: Vercel → projekt **vilhelmina-lodge** → Deployments (senaste raden ska matcha din commit och stå som "Ready"/"Production").
+- Fallback vid behov: manuell deploy går fortfarande via `npx vercel --prod` från `booking-frontend`.
 
 ### 5.6 Supabase Edge Functions (deploy)
 
-För att deploya Edge Functions efter ändringar:
+Fortfarande manuellt (ej kopplat till git):
 
 ```bash
 cd Bokningssystem
@@ -164,12 +206,22 @@ npx supabase login
 npx supabase functions deploy send-booking-emails --project-ref mqarsrzwwttgccwiwkir
 ```
 
+Migrationer (t.ex. `003_add_hunting_guide.sql`) körs manuellt genom att klistra in i Supabase SQL Editor.
+
+### 5.7 Not om Git-verktyg på Windows
+
+- Leif pushar via **GitHub Desktop** (kommandot `git` ligger inte i PowerShells PATH på nuvarande dator).
+  Använd Git Bash eller GitHub Desktop om `git` inte hittas i terminalen.
+- Om projektet redigeras via en molnbaserad Cowork-session kan `git push` inte köras därifrån
+  (sandboxen saknar nätverk) — pusha då från GitHub Desktop. Sådana sessioner kan också lämna kvar
+  tomma `.git/*.lock`-filer; om git klagar på lås, radera `.git/index.lock`.
+
 ## 6. Supabase-konfiguration (redan uppsatt i molnet)
 
 ### 6.1 Databas (PostgreSQL)
 - 10 tabeller: `seasons`, `pricing_periods`, `blocked_dates`, `addons`, `guests`, `bookings`, `booking_addons`, `payments`, `email_log`, `settings`
 - RLS aktiverat på alla tabeller
-- Bokningsreferens auto-genereras via trigger (VL-2026-001, VL-2026-002, ...)
+- Bokningsreferens auto-genereras via trigger (VL-2026-001, VL-2026-002, ...) — använder MAX (migration 003_fix_reference_generator)
 - Secret token per bokning för gäståtkomst
 
 ### 6.2 RPC-funktioner (direkt i SQL Editor, EJ i migrationsfilen)
@@ -195,7 +247,7 @@ Följande fixar gjordes direkt i Supabase SQL Editor:
 
 ### 6.5 Edge Function — send-booking-emails
 - Deployad i Supabase
-- **Två sätt att triggas (sedan 2026-05-14):**
+- **Två sätt att triggas:**
   1. **Database Webhook** på `bookings` INSERT → skickar `booking_received` (gäst + admin-notis till info@flightmode.se)
   2. **Direkt HTTP-anrop** från admin-UI via `supabase.functions.invoke(...)` med `{event_type, booking_id}` → skickar `booking_confirmed` eller `booking_declined`
 - CORS-headers + OPTIONS preflight stödjs (krävs för browser-anrop)
@@ -207,6 +259,7 @@ Följande fixar gjordes direkt i Supabase SQL Editor:
   - `booking_declined` — när admin nekar. Kort artig text på 4 språk
 - **Mailtyper i email_type-enum men ej byggda än:** `payment_request`, `payment_confirmed`, `reminder`, `welcome`, `cancellation` (planerat fas 2)
 - HTML är optimerad för Outlook (använder `<div>` i stället för `<p>`, pixel-baserad `line-height`, `mso-line-height-rule: exactly`)
+- Kontraktslänken visas även som ren text bredvid länken (workaround för iOS Mail, commit f405346)
 
 ### 6.6 Supabase Secrets (satta via CLI)
 ```
@@ -229,7 +282,6 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
   - `deposit_paid_at` — säkerhetsdeposition (5 000 kr) mottagen
   - `deposit_refunded_at` — säkerhetsdeposition återbetald efter avsyning
 - Belopp beräknas dynamiskt i UI: bokningsavgift och slutbetalning som `total_price * 0.5`, deposition från `bookings.deposit_amount`
-- Migration kördes i Supabase SQL Editor 2026-05-14 (CASCADE-säker: `add column if not exists`)
 - API i `adminApi.js`: `setBookingPayment(id, type, paidAt)` hanterar alla fyra
 - **Auto-statusbyte:** när `advance_paid_at` sätts → status `pending → confirmed`; när `final_paid_at` sätts → status `confirmed → paid`
 - UI i `BookingDetailPage`: "Betalningar"-sektion med fyra rader, varje med belopp + status + knapp "Markera mottagen" / "Ångra"
@@ -240,24 +292,27 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 - Behåller statisk konfiguration: `addons`, `seasons`, `pricing_periods`, `settings`
 - `blocked_dates` lämnas intakt by default (utkommenterad valfri rensning)
 - Verifierings-query i slutet räknar rader per tabell — använder subqueries istället för `UNION ALL` eftersom Supabase SQL Editor snubblade på `rows` som column-alias
-- Användning: klistra in i Supabase SQL Editor → kör → kontrollera att transaktionstabeller är 0 och statiska tabeller har sitt innehåll kvar
-- Efter rensning: nästa bokning får automatiskt `VL-2026-001` igen (triggern `generate_booking_reference` räknar `count(*) + 1`)
-- Skriptet kördes 2026-05-13 efter testfasen för att gå skarpt — verifierat fungerande på riktig testdata
+- Skriptet kördes 2026-05-13 efter testfasen för att gå skarpt — verifierat fungerande
 
 ### 6.10 Keep-alive workflow (GitHub Actions)
 - GitHub Action `.github/workflows/keep-supabase-alive.yml` pingar Supabase REST API var 5:e dag för att förhindra att free-tier-projektet pausas (pausas annars efter 7 dagars inaktivitet)
 - Cron: `0 9 */5 * *` (09:00 UTC, var 5:e dag) + manuell trigger via `workflow_dispatch`
-- Pingar `/rest/v1/bookings?select=id&limit=1` med anon-nyckel — accepterar 200/401/403 som lyckad körning (alla räknas som projektaktivitet)
-- GitHub Secrets som används (konfigurerade i repo settings → Secrets and variables → Actions):
-  - `SUPABASE_URL` = `https://mqarsrzwwttgccwiwkir.supabase.co`
-  - `SUPABASE_ANON_KEY` = anon-nyckeln (samma som i `.env`)
-- Logg och manuell körning: https://github.com/glimtz/bokningssystem/actions/workflows/keep-supabase-alive.yml
+- Pingar `/rest/v1/bookings?select=id&limit=1` med anon-nyckel — accepterar 200/401/403 som lyckad körning
+- GitHub Secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`
+- Logg: https://github.com/glimtz/bokningssystem/actions/workflows/keep-supabase-alive.yml
+
+### 6.11 Hunting guide / jaktguide (migration 003_add_hunting_guide.sql) — NYTT
+- Lägger till tillvalet `guide_hunting` (Jaktguide): **8 000 kr/dag**, `price_type = per_day`, översatt till EN/SV/DE/FR
+- Idempotent (`on conflict (slug) do update`) — säkert att köra om
+- Justerar `sort_order` så guiderna hamnar bredvid varandra: boat(1), guide(2), guide_hunting(3), linens(4), cleaning(5)
+- I det publika flödet grupperas fiskeguide (`guide`) och jaktguide (`guide_hunting`) i ETT "Guide"-kort där gästen kan välja endera eller båda, med egen dagväljare per typ (se `renderAddonCard` i `BookingApp.jsx`)
+- **Att göra på ny miljö:** kör migrationen i SQL Editor om addonet saknas i databasen
 
 ## 7. Publikt bokningsflöde (end-to-end)
 
-1. Gäst öppnar https://vilhelmina-lodge.vercel.app
+1. Gäst öppnar https://vilhelmina-lodge.vercel.app (eller booking.flightmode.se)
 2. **Steg 1 — Datum:** Väljer check-in/check-out i kalender (bokade/blockerade datum visas disabled), antal gäster
-3. **Steg 2 — Tillval:** Båt (med dagväljare), guide (med dagväljare), sänglinne, städning
+3. **Steg 2 — Tillval:** Båt (med dagväljare), **Guide-kort med fiske- och jaktguide** (var sin dagväljare), sänglinne, städning
 4. **Steg 3 — Kontakt:** Namn, e-post, telefon, meddelande, GDPR-samtycke, marknadsföringssamtycke
 5. **Steg 4 — Sammanfattning:** Ser priser, valda dagar för båt/guide, bekräftar
 6. Frontend anropar `createBookingRequest()` i `api.js` → skapar guest + booking + booking_addons i Supabase
@@ -265,37 +320,44 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 8. Edge Function hämtar gäst + addons (med selected_dates), bygger HTML-mail, skickar via Loopia SMTP
 9. Gästen ser bekräftelsesida med referensnummer (t.ex. VL-2026-003)
 10. Två mail skickas: gästbekräftelse (på gästens språk) + admin-notis till info@flightmode.se
-11. Mailen visar valda dagar för båt och guide (t.ex. "→ 15 maj, 17 maj")
+11. Mailen visar valda dagar för båt och guide
 
 ## 8. Admin-dashboard (`/admin`)
 
 Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 
 ### 8.1 Sidor/routes
-- **`/admin` (Stats)** — Översiktssida. Visar:
-  - Fyra stat-kort: Bokningsförfrågningar [år], Väntande, Totala intäkter, Bokade nätter
-  - "Inkomna bokningsförfrågningar per månad ([år])" — stapeldiagram baserat på `created_at`
-  - "Status fördelning" — antal/procent per status
-  - "Bokningar per månad ([år])" — stacked stapeldiagram baserat på `check_in` med tre färgsegment (Bekräftade/Betalda/Genomförda)
-- **`/admin/bookings`** — Lista över alla bokningar med filter (status), sök (ref/namn/email), paginering. Åtgärd-kolumnen visar enbart en "Öppna"-knapp som tar till detaljvyn (sedan 2026-05-14)
-- **`/admin/bookings/:id`** — Detaljvy för enskild bokning. Innehåller:
-  - Gäst, datum, addons, priser, adminanteckningar
-  - **Betalningar-sektion** (sedan 2026-05-14): bokningsavgift, slutbetalning, säkerhetsdeposition, återbetalning — vardera med "Markera mottagen" / "Ångra"
-  - **Status-knappar:** Godkänn/Neka (pending) → Betald/Avboka (confirmed) → Genomförd/Avboka (paid). Återställ-till-väntande-knapp för declined/cancelled (sedan 2026-05-14)
-  - Bekräftelsedialog vid alla destruktiva status-byten (Avboka, Neka, Godkänn, Återställ)
-  - **Mailutskick automatiskt** vid Godkänn (booking_confirmed) och Neka (booking_declined)
-  - **Farlig zon-sektion** med hard delete (sedan 2026-05-14) — tar bort bokningen ur databasen permanent. booking_addons + payments cascade-raderas, email_log behålls
-- **`/admin/calendar`** — Årsvy med alla bokade och blockerade datum. Kan lägga till/ta bort blockerade datum (manuellt eller t.ex. Airbnb-synk-markering)
-- **`/admin/seasons`** — Hantera säsonger, prisperioder, addon-priser och globala inställningar (deposition-storlek, max gäster etc.)
+- **`/admin` (Stats)** — Översiktssida: fyra stat-kort (Bokningsförfrågningar, Väntande, Totala intäkter, Bokade nätter), stapeldiagram per månad (inkomna + bokningar per check_in med statusfärger), statusfördelning
+- **`/admin/bookings`** — Lista med filter (status), sök (ref/namn/email), paginering. **"+ Ny bokning"-knapp** uppe till höger som öppnar skapa-modalen (se 8.4). "Öppna"-knapp per rad till detaljvyn
+- **`/admin/bookings/:id`** — Detaljvy med full redigering (se 8.3)
+- **`/admin/calendar`** — Årsvy med bokade/blockerade datum. Lägg till/ta bort blockerade datum
+- **`/admin/seasons`** — Hantera säsonger, prisperioder, addon-priser och globala inställningar (deposition, max gäster etc.)
 
 ### 8.2 Komponenter
-- `AdminApp.jsx` — innehåller alla sidor, AuthProvider, ErrorBoundary, AdminLayout med sidomeny
-- `adminApi.js` — Supabase-anrop för admin: auth, bookings CRUD, seasons/pricing CRUD, blocked_dates CRUD, stats-aggregering, addons, settings
-- `admin.css` — egen styling (separat från det publika flödet)
+- `AdminApp.jsx` — alla sidor, AuthProvider, ErrorBoundary, AdminLayout med sidomeny, NewBookingModal
+- `adminApi.js` — Supabase-anrop för admin (se 8.5 för nya funktioner)
+- `admin.css` — egen styling
 
-### 8.3 Skapa admin-användare
-Admin läggs till direkt i Supabase Dashboard:
-1. Authentication → Users → Add user
+### 8.3 Bokningsredigering i detaljvyn (NYTT sedan 2026-08-05)
+`BookingDetailPage` har nu full redigering utöver status/betalningar:
+- **Redigera gäst** — namn, e-post, telefon, språk (`updateGuest`, "Spara")
+- **Redigera bokning** — in-/utcheckning, antal gäster, med omräknat pris (`updateBookingDetails`, "Spara")
+- **Tillval** — lägg till/ändra/ta bort addons på en befintlig bokning (`addBookingAddon` / `updateBookingAddon` / `deleteBookingAddon`), total räknas om (`recalcBookingTotal`)
+- **Justera pris** — sätt manuellt `total_price`/`deposit_amount` med en **anledning** som loggas i `admin_notes` (`updateBookingPrice`)
+- Betalningar, status-knappar, hard delete och adminanteckningar finns kvar sedan tidigare
+
+### 8.4 Skapa bokning i admin — "+ Ny bokning" (NYTT)
+- `NewBookingModal` i `AdminApp.jsx` — skapa en bokning direkt (gäst, datum, antal gäster, status, tillval)
+- **Specialpris för lodge (2026-08-05):** kryssrutan "Specialpris för lodge" i prissammanställningen låter admin skriva över det beräknade lodge-priset. Ordinarie pris visas som referens, totalen räknas om (specialpris + tillval), och specialpriset sparas som `lodge_total`. En notering läggs automatiskt i `admin_notes`, t.ex. "Specialpris för lodge: 8 000 kr (ordinarie 12 000 kr)"
+- Vid "Skapa bokning" anropas `createBooking({guest, booking, addons, pricing})` i `adminApi.js`
+
+### 8.5 Nya funktioner i adminApi.js (2026-08-05)
+`createBooking`, `updateBookingDetails`, `updateGuest`, `updateBookingPrice`, `recalcBookingTotal`,
+`addBookingAddon`, `updateBookingAddon`, `deleteBookingAddon`, plus hjälpfunktioner
+`lodgePricePerNight`, `nightsBetween`, `addonRowTotal`.
+
+### 8.6 Skapa admin-användare
+1. Supabase Dashboard → Authentication → Users → Add user
 2. Email + password (t.ex. leif.gyllenberg@gmail.com)
 3. Användaren kan sedan logga in på `/admin`
 
@@ -303,45 +365,49 @@ Admin läggs till direkt i Supabase Dashboard:
 
 - **Språkväljare:** Emoji-flaggor på Mac/iOS/Android, text-fallback (EN/SV/DE/FR) på Windows
 - **Stepper:** Visar stegnamn (Dates, Extras, Contact, Summary) på alla skärmstorlekar
-- **Kalender:** Responsiv — fungerar på smala mobiler (Samsung Flip-5) utan avklippta dagar. Bokade datum (från `get_booked_dates`-RPC) och blockerade datum visas disabled
-- **Lodge-kort:** Feature-taggar med ✓-ikon (visar att alla stugor ingår)
-- **Båt-tillval:** Har dagväljare precis som guide (välj antal dagar → välj vilka dagar)
-- **Dagväljare (båt/guide):** Vid ändring av antal dagar behålls redan valda dagar (trimmas om man minskar). Tidigare nollställdes alla val.
+- **Kalender:** Responsiv. Bokade datum (från `get_booked_dates`-RPC) och blockerade datum visas disabled
+- **Guide-kort (NYTT):** Fiskeguide och jaktguide grupperade i ett kort — välj endera eller båda, var sin dagväljare
+- **Båt-tillval:** Dagväljare (välj antal dagar → välj vilka dagar)
+- **Dagväljare (båt/guide):** Vid ändring av antal dagar behålls redan valda dagar (trimmas om man minskar)
 - **Checkbox-spacing:** Tydligt mellanrum mellan GDPR/marknadsförings-checkboxar och formulärfält
 
 ## 10. Kända problem och teknisk skuld
 
-- [ ] **Migrationsfilen är inte synkad** — RLS-fixar och `get_booked_dates`-RPC gjordes direkt i SQL Editor, migrationsfilen har gamla policies. (Note: migration 002 är synkad)
+- [ ] **Migrationsfilen 001 är inte synkad** — RLS-fixar och `get_booked_dates`-RPC gjordes direkt i SQL Editor. (migration 002 och 003 är synkade som filer)
+- [ ] **Två migrationer med nummer 003** — `003_fix_reference_generator.sql` och `003_add_hunting_guide.sql`. Byt gärna det senare till 004
 - [ ] **SMTP-lösenord bör bytas** — exponerades i chatt-session
-- [ ] **FROM-adress:** Mail skickas från `leif.gyllenberg@glimtz.se` istället för `info@flightmode.se` (Loopia kräver att avsändaren matchar SMTP-kontot). Lösning: sätt upp separat SMTP för info@flightmode.se i Loopia
-- [ ] **SPF/DKIM saknas för flightmode.se** — confirmation-mail hamnar i skräppost. Behöver konfigureras hos DNS-leverantör
-- [ ] **Inga betalningar (automatik)** — Stripe/Swish ej integrerat. Idag manuellt: admin markerar betalningar mottagna via UI:t (sedan 2026-05-14)
-- [ ] **Resend-konto skapat** — API-nyckel finns men används inte (vi gick med Loopia SMTP). Kan avaktiveras
-- [ ] **Vercel-deploy är manuell** — kräver `npx vercel --prod` från terminalen. Kan kopplas till GitHub för auto-deploy
-- [ ] **Edge Function-deploy är manuell** — kräver `npx supabase functions deploy send-booking-emails ...` från terminalen
-- [ ] **Avtals-PDF har platshållare** — `/bokningsavtal.pdf` är generisk mall med `[Namn]` etc. Inte personalanpassad per bokning. Förbättring i fas 2: generera ifylld PDF on-the-fly i Edge Function
-- [ ] **Mail-utskick saknas för betalningar och avbokningar** — när bokningsavgift markeras mottagen eller en bokning avbokas skickas inget mail. Planerat fas 2 (`payment_confirmed`, `cancellation`)
-- [ ] **Påminnelse- och välkomstmail saknas** — `reminder` och `welcome` definierade i schemat men ej byggda. Behöver schedulerad körning (cron eller GitHub Action)
-- [ ] **Variabelt belopp för förskott/slutbetalning** — idag hårdkodat 50/50, ingen möjlighet att t.ex. säga "kräv 8 000 kr i förskott" för en specifik bokning
-- [ ] **Windows/Git CRLF-brus** — `git status` visar ibland 9 filer som "modified" enbart p.g.a. line-endings. Kan lösas med en `.gitattributes` som sätter `* text=auto eol=lf`, men är i nuläget ofarligt (filerna är identiska efter CRLF-normalisering)
+- [ ] **FROM-adress:** Mail skickas från `leif.gyllenberg@glimtz.se` istället för `info@flightmode.se`. Lösning: separat SMTP för info@flightmode.se i Loopia
+- [ ] **SPF/DKIM saknas för flightmode.se** — confirmation-mail hamnar i skräppost. Behöver DNS-konfiguration
+- [ ] **Inga betalningar (automatik)** — Stripe/Swish ej integrerat. Idag manuellt via UI
+- [ ] **Resend-konto skapat** — API-nyckel finns men används inte (vi kör Loopia SMTP). Kan avaktiveras
+- [ ] **Edge Function-deploy är manuell** — kräver `npx supabase functions deploy ...`
+- [ ] **Avtals-PDF har platshållare** — `/bokningsavtal.pdf` är generisk mall. Fas 2: generera ifylld PDF per bokning
+- [ ] **Mail-utskick saknas för betalningar och avbokningar** — `payment_confirmed`, `cancellation` ej byggda
+- [ ] **Påminnelse- och välkomstmail saknas** — `reminder`, `welcome` definierade men ej byggda (kräver schedulerad körning)
+- [x] **~~Vercel-deploy är manuell~~** — ✅ Löst 2026-08-07: GitHub-kopplat, auto-deploy vid push till main
+- [x] **~~Windows/Git CRLF-brus~~** — ✅ Löst 2026-07-03 via `.gitattributes` (text=auto eol=lf)
+- [ ] **`.env`-filer ligger inte i git** — måste kopieras manuellt vid byte av dator (se 5.3)
 
 ## 11. Planerade nästa steg
 
 1. **~~Admin-dashboard~~** — ✅ Klar (commit d49b982)
 2. **~~Hard delete för bokningar~~** — ✅ Klar 2026-05-14
 3. **~~Payment tracking (manuell)~~** — ✅ Klar 2026-05-14 (migration 002 + UI)
-4. **~~Mail för bekräftelse/nekande~~** — ✅ Klar 2026-05-14 (booking_confirmed + booking_declined på 4 språk)
+4. **~~Mail för bekräftelse/nekande~~** — ✅ Klar 2026-05-14
 5. **~~Restore-knapp för avbokade/nekade bokningar~~** — ✅ Klar 2026-05-14
-6. **Fas 2 mailtyper:** `payment_confirmed`, `cancellation` (när betalningar registreras / bokning avbokas)
-7. **Fas 3 mailtyper:** `reminder` (X dagar före ankomst), `welcome` (vid ankomst) — kräver schedulerad körning
-8. **Koppla Vercel till GitHub** — auto-deploy vid push
-9. **Egen domän** — t.ex. booking.flightmode.se på Vercel
-10. **Stripe/Swish-integration** — automatisk hantering av bokningsavgift och slutbetalning
-11. **SPF/DKIM för flightmode.se** — så mail inte hamnar i skräppost
-12. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
-13. **Synka migrationsfil 001** — uppdatera med RLS-fixarna och `get_booked_dates`-RPC
-14. **Ifylld avtals-PDF** — generera per bokning i Edge Function (i stället för statisk mall)
-15. **Admin-utökningar (ev.):** exportera bokningar till CSV, iCal-feed för kalender, email-mall-editor
+6. **~~Koppla Vercel till GitHub (auto-deploy)~~** — ✅ Klar 2026-08-07
+7. **~~Egen domän (booking.flightmode.se)~~** — ✅ Konfigurerad på Vercel
+8. **~~Hunting guide-tillval~~** — ✅ Klar 2026-08-05 (migration 003 + publikt Guide-kort)
+9. **~~Skapa/redigera bokningar i admin + specialpris~~** — ✅ Klar 2026-08-05
+10. **Fas 2 mailtyper:** `payment_confirmed`, `cancellation`
+11. **Fas 3 mailtyper:** `reminder`, `welcome` — kräver schedulerad körning
+12. **Stripe/Swish-integration** — automatisk bokningsavgift/slutbetalning
+13. **SPF/DKIM för flightmode.se** — så mail inte hamnar i skräppost
+14. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
+15. **Synka migrationsfil 001** — RLS-fixar och `get_booked_dates`-RPC
+16. **Ifylld avtals-PDF** — generera per bokning i Edge Function
+17. **Byt namn på dubbel-003-migrationen** till 004
+18. **Admin-utökningar (ev.):** exportera bokningar till CSV, iCal-feed, email-mall-editor
 
 ## 12. Språk och preferenser
 

@@ -253,10 +253,20 @@ export async function deleteBooking(id) {
 
 // Prishjälpare (speglar logiken i det publika flödet, BookingApp.jsx).
 // Lodge-pris/natt = max(pris_per_person × antal_gäster, min_pris).
-export function lodgePricePerNight(numGuests, settings) {
+// rentalOption: 'full_lodge' (hela lodgen, golv 4000) | 'lillstuga' (endast Lillstugan, golv 2000).
+export function lodgePricePerNight(numGuests, settings, rentalOption = 'full_lodge') {
   const perPerson = parseInt(settings?.price_per_person_per_night) || 950
-  const minPrice = parseInt(settings?.min_price_per_night) || 4000
+  const minPrice = rentalOption === 'lillstuga'
+    ? (parseInt(settings?.lillstuga_min_price_per_night) || 2000)
+    : (parseInt(settings?.min_price_per_night) || 4000)
   return Math.max(perPerson * (numGuests || 1), minPrice)
+}
+
+// Max antal gäster för valt boende.
+export function maxGuestsFor(settings, rentalOption = 'full_lodge') {
+  return rentalOption === 'lillstuga'
+    ? (parseInt(settings?.lillstuga_max_guests) || 4)
+    : (parseInt(settings?.max_guests) || 8)
 }
 
 export function nightsBetween(checkIn, checkOut) {
@@ -288,11 +298,12 @@ export async function updateGuest(guestId, fields) {
 
 // Uppdatera bokningsdetaljer (datum + antal gäster). Om `pricing` anges
 // (t.ex. omräknat lodge/total) skrivs även de prisfälten i samma anrop.
-export async function updateBookingDetails(id, { check_in, check_out, num_guests, pricing } = {}) {
+export async function updateBookingDetails(id, { check_in, check_out, num_guests, rental_option, pricing } = {}) {
   const update = {}
   if (check_in != null) update.check_in = check_in
   if (check_out != null) update.check_out = check_out
   if (num_guests != null) update.num_guests = num_guests
+  if (rental_option != null) update.rental_option = rental_option
   if (pricing) {
     if (pricing.lodge_total != null) update.lodge_total = pricing.lodge_total
     if (pricing.addons_total != null) update.addons_total = pricing.addons_total
@@ -391,6 +402,7 @@ export async function createBooking({ guest, booking, addons, pricing }) {
       message: booking.message || null,
       admin_notes: booking.admin_notes || null,
       status: booking.status || 'confirmed',
+      rental_option: booking.rental_option || 'full_lodge',
       lodge_total: num(pricing.lodge_total),
       addons_total: num(pricing.addons_total),
       total_price: num(pricing.total_price),

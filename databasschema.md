@@ -70,6 +70,7 @@ erDiagram
         date check_in
         date check_out
         smallint num_guests
+        text rental_option
         booking_status status
         integer total_price
         integer deposit_amount
@@ -155,6 +156,8 @@ erDiagram
 
 **Priser sparas på bokningen:** `lodge_total`, `addons_total` och `total_price` sparas vid bokningstillfället så priset inte ändras i efterhand.
 
+**Boendealternativ (`rental_option`):** Varje bokning anger `full_lodge` (hela lodgen) eller `lillstuga` (endast Lillstugan). Bokningen är exklusiv i båda fallen och blockerar hela fastigheten. Priset styrs av golvet per alternativ (4 000 kr resp. 2 000 kr per natt) med gemensamt pris/person (950 kr). Tillagt i migration `004_add_rental_option.sql`.
+
 **Bokningsreferens:** Auto-genereras som `VL-2026-001` via en trigger — lätt att kommunicera med gäster.
 
 **Secret token:** Varje bokning får ett unikt `secret_token` (32 hex-tecken) som skickas i bekräftelsemejlet. Gästen kan se sin bokning via en länk med token — utan att behöva logga in. RLS-policyn kräver antingen rätt token eller admin-inloggning.
@@ -169,6 +172,10 @@ erDiagram
 |--------|-------|
 | deposit_amount | 5000 SEK |
 | max_guests | 8 |
+| price_per_person_per_night | 950 SEK |
+| min_price_per_night | 4000 SEK (golv, hela lodgen) |
+| lillstuga_min_price_per_night | 2000 SEK (golv, endast Lillstugan) |
+| lillstuga_max_guests | 4 |
 | currency | SEK |
 | booking_auto_decline_hours | 72 |
 | supported_languages | en, sv, de, fr |

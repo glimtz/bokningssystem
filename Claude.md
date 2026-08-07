@@ -75,12 +75,15 @@ Filer organiseras per projekt under respektive bolag:
 
 ```
 Claude/
-├── Glimtz Invest/
+├── Glimtz/
 │   └── [projekt]/
-├── Basecamp by Glimtz/
+├── Basecamp/
 │   └── [projekt]/
-├── Flightmode Adventures/
+├── Flightmode/
 │   └── [projekt]/
+│  
+└── LiteExtra/
+│ 
 └── Other/
 ```
 

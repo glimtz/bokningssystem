@@ -10,6 +10,18 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Nytt boendealternativ: Lillstugan (2026-08-07)** — gästen kan nu välja mellan att hyra
+  *hela lodgen* (golv 4 000 kr/natt, max 8 gäster) eller *endast Lillstugan* (sovstuga + delad
+  relax/bastu + grillkåta/utegrillplats, storstugan ingår ej; golv 2 000 kr/natt, max 4 gäster).
+  Samma pris/person (950 kr) för båda — Lillstugan skiljer sig bara i lägre golvpris och färre
+  gäster. Bokningen är fortfarande exklusiv och blockerar hela fastigheten. Implementerat via
+  ny kolumn `bookings.rental_option` (`full_lodge` | `lillstuga`, **migration
+  `004_add_rental_option.sql`**) och nya settings `lillstuga_min_price_per_night` (2000) och
+  `lillstuga_max_guests` (4). Val finns i publika flödet (StepDates, två boendekort), admin
+  "Ny bokning"-modal samt redigering i bokningsdetaljer (`BookingDetailPage`). Grilltexten är
+  samtidigt förtydligad till *grillkåta + utegrillplats* (plural) på alla fyra språk.
+  ⚠️ **Kvarstår:** bekräftelse-/förfrågningsmailen (Edge Function `send-booking-emails`) visar
+  ännu inte vilket boende som valts — kräver manuell redeploy och tas som separat steg.
 - **Vercel är nu kopplat till GitHub (2026-08-07)** — auto-deploy vid varje push till `main`.
   Root Directory är satt till `booking-frontend`, framework-preset Vite. Manuell `vercel --prod`
   behövs inte längre. Detta var tidigare en av de största punkterna på "att göra"-listan.
@@ -140,7 +152,8 @@ Bokningssystem/
     │   ├── 001_initial_schema.sql            # Databas-schema (10 tabeller, RLS, seed data)
     │   ├── 002_payment_tracking.sql          # advance/final/deposit/refunded timestamps
     │   ├── 003_fix_reference_generator.sql   # ref-generator använder MAX i st f COUNT
-    │   └── 003_add_hunting_guide.sql         # NYTT tillval guide_hunting (jaktguide)
+    │   ├── 003_add_hunting_guide.sql         # tillval guide_hunting (jaktguide)
+    │   └── 004_add_rental_option.sql         # NYTT boende Lillstugan (bookings.rental_option + settings)
     ├── scripts/
     │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/
@@ -308,10 +321,23 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
 - I det publika flödet grupperas fiskeguide (`guide`) och jaktguide (`guide_hunting`) i ETT "Guide"-kort där gästen kan välja endera eller båda, med egen dagväljare per typ (se `renderAddonCard` i `BookingApp.jsx`)
 - **Att göra på ny miljö:** kör migrationen i SQL Editor om addonet saknas i databasen
 
+### 6.12 Boendealternativ / rental_option (migration 004_add_rental_option.sql) — NYTT
+- Lägger till kolumnen `bookings.rental_option text not null default 'full_lodge'` med
+  check-constraint `in ('full_lodge', 'lillstuga')`
+- Nya settings-rader: `lillstuga_min_price_per_night` (2000), `lillstuga_max_guests` (4). Migrationen
+  sätter även `price_per_person_per_night` (950) och `min_price_per_night` (4000) explicit i settings
+  (tidigare fanns de bara som kod-defaultar i frontend)
+- Prismodell: lodge-pris/natt = `max(pris_per_person × antal_gäster, golvpris)`. Golvet är 4 000 kr
+  för hela lodgen och 2 000 kr för Lillstugan; pris/person (950 kr) är gemensamt
+- Frontend läser rätt golv/maxgäster per val i både publikt flöde och admin
+  (`getRentalOptions` i `BookingApp.jsx`, `lodgePricePerNight`/`maxGuestsFor` i `adminApi.js`)
+- Idempotent (`on conflict`), säker att köra om
+- **Att göra på ny miljö:** kör migrationen i SQL Editor
+
 ## 7. Publikt bokningsflöde (end-to-end)
 
 1. Gäst öppnar https://vilhelmina-lodge.vercel.app (eller booking.flightmode.se)
-2. **Steg 1 — Datum:** Väljer check-in/check-out i kalender (bokade/blockerade datum visas disabled), antal gäster
+2. **Steg 1 — Datum:** Väljer först **boende** (Hela lodgen eller Endast Lillstugan — två kort som styr golvpris och max antal gäster), sedan check-in/check-out i kalender (bokade/blockerade datum visas disabled) och antal gäster
 3. **Steg 2 — Tillval:** Båt (med dagväljare), **Guide-kort med fiske- och jaktguide** (var sin dagväljare), sänglinne, städning
 4. **Steg 3 — Kontakt:** Namn, e-post, telefon, meddelande, GDPR-samtycke, marknadsföringssamtycke
 5. **Steg 4 — Sammanfattning:** Ser priser, valda dagar för båt/guide, bekräftar
@@ -382,6 +408,7 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 - [ ] **Resend-konto skapat** — API-nyckel finns men används inte (vi kör Loopia SMTP). Kan avaktiveras
 - [ ] **Edge Function-deploy är manuell** — kräver `npx supabase functions deploy ...`
 - [ ] **Avtals-PDF har platshållare** — `/bokningsavtal.pdf` är generisk mall. Fas 2: generera ifylld PDF per bokning
+- [ ] **Mail visar inte valt boende** — bekräftelse-/förfrågningsmailen (`send-booking-emails`) nämner ännu inte om bokningen avser hela lodgen eller endast Lillstugan. Priset i mailet stämmer (lodge_total speglar rätt golv), men själva boendenamnet saknas. Kräver Edge Function-redeploy
 - [ ] **Mail-utskick saknas för betalningar och avbokningar** — `payment_confirmed`, `cancellation` ej byggda
 - [ ] **Påminnelse- och välkomstmail saknas** — `reminder`, `welcome` definierade men ej byggda (kräver schedulerad körning)
 - [x] **~~Vercel-deploy är manuell~~** — ✅ Löst 2026-08-07: GitHub-kopplat, auto-deploy vid push till main
@@ -399,6 +426,8 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 7. **~~Egen domän (booking.flightmode.se)~~** — ✅ Konfigurerad på Vercel
 8. **~~Hunting guide-tillval~~** — ✅ Klar 2026-08-05 (migration 003 + publikt Guide-kort)
 9. **~~Skapa/redigera bokningar i admin + specialpris~~** — ✅ Klar 2026-08-05
+9b. **~~Boendealternativ Lillstugan~~** — ✅ Klar 2026-08-07 (migration 004 + publikt boendeval + admin skapa/redigera)
+9c. **Visa valt boende i mailen** — lägg till Lillstugan/hela lodgen i `send-booking-emails` (4 språk) + redeploy
 10. **Fas 2 mailtyper:** `payment_confirmed`, `cancellation`
 11. **Fas 3 mailtyper:** `reminder`, `welcome` — kräver schedulerad körning
 12. **Stripe/Swish-integration** — automatisk bokningsavgift/slutbetalning

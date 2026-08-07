@@ -400,6 +400,14 @@ const statusOptions = [
   { value: 'declined', label: 'Nekade' },
 ]
 
+// Boendealternativ — måste matcha bookings.rental_option i databasen.
+const rentalOptionChoices = [
+  { value: 'full_lodge', label: 'Hela lodgen' },
+  { value: 'lillstuga', label: 'Endast Lillstugan' },
+]
+const rentalOptionLabel = (v) =>
+  (rentalOptionChoices.find(o => o.value === (v || 'full_lodge')) || rentalOptionChoices[0]).label
+
 const statusBadgeClass = {
   pending: 'badge-pending',
   confirmed: 'badge-confirmed',
@@ -439,6 +447,7 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', language: 'sv',
     check_in: '', check_out: '', num_guests: 2, status: 'confirmed', message: '',
+    rental_option: 'full_lodge',
   })
   // addonSel: { [addonId]: { selected, days, dates: [] } }
   const [addonSel, setAddonSel] = useState({})
@@ -460,7 +469,7 @@ const NewBookingModal = ({ onClose, onCreated }) => {
 
   const nights = api.nightsBetween(form.check_in, form.check_out)
   const numGuests = parseInt(form.num_guests, 10) || 1
-  const perNight = api.lodgePricePerNight(numGuests, settings)
+  const perNight = api.lodgePricePerNight(numGuests, settings, form.rental_option)
   const lodgeTotal = nights > 0 ? perNight * nights : 0
   const deposit = parseInt(settings.deposit_amount) || 5000
   const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
@@ -538,7 +547,7 @@ const NewBookingModal = ({ onClose, onCreated }) => {
         : null
       const res = await api.createBooking({
         guest: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), language: form.language, marketing_consent: false },
-        booking: { check_in: form.check_in, check_out: form.check_out, num_guests: numGuests, message: form.message || null, status: form.status, admin_notes: specialNote },
+        booking: { check_in: form.check_in, check_out: form.check_out, num_guests: numGuests, message: form.message || null, status: form.status, admin_notes: specialNote, rental_option: form.rental_option },
         addons,
         pricing: { lodge_total: effectiveLodgeTotal, addons_total: addonsTotal, total_price: total, deposit_amount: deposit },
       })
@@ -577,8 +586,17 @@ const NewBookingModal = ({ onClose, onCreated }) => {
               <input type="date" value={form.check_in} onChange={e => setForm(f => ({ ...f, check_in: e.target.value }))} /></label>
             <label className="detail-row" style={{ alignItems: 'center' }}><span>Utcheckning *</span>
               <input type="date" value={form.check_out} onChange={e => setForm(f => ({ ...f, check_out: e.target.value }))} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Boende</span>
+              <select value={form.rental_option}
+                onChange={e => {
+                  const ro = e.target.value
+                  const max = api.maxGuestsFor(settings, ro)
+                  setForm(f => ({ ...f, rental_option: ro, num_guests: Math.min(parseInt(f.num_guests, 10) || 1, max) }))
+                }}>
+                {rentalOptionChoices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select></label>
             <label className="detail-row" style={{ alignItems: 'center' }}><span>Gäster</span>
-              <input type="number" min="1" max={parseInt(settings.max_guests) || 8} value={form.num_guests}
+              <input type="number" min="1" max={api.maxGuestsFor(settings, form.rental_option)} value={form.num_guests}
                 onChange={e => setForm(f => ({ ...f, num_guests: e.target.value }))} style={{ width: '80px', textAlign: 'right' }} /></label>
             <label className="detail-row" style={{ alignItems: 'center' }}><span>Status</span>
               <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
@@ -811,7 +829,7 @@ const BookingDetailPage = () => {
   const [guestForm, setGuestForm] = useState({ name: '', email: '', phone: '', language: 'sv', marketing_consent: false })
   const [savingGuest, setSavingGuest] = useState(false)
   const [editingDetails, setEditingDetails] = useState(false)
-  const [detailsForm, setDetailsForm] = useState({ check_in: '', check_out: '', num_guests: 1 })
+  const [detailsForm, setDetailsForm] = useState({ check_in: '', check_out: '', num_guests: 1, rental_option: 'full_lodge' })
   const [savingDetails, setSavingDetails] = useState(false)
   const [editingAddons, setEditingAddons] = useState(false)
   const [addAddonId, setAddAddonId] = useState('')
@@ -968,6 +986,7 @@ const BookingDetailPage = () => {
       check_in: booking.check_in?.substring(0, 10) || '',
       check_out: booking.check_out?.substring(0, 10) || '',
       num_guests: booking.num_guests || 1,
+      rental_option: booking.rental_option || 'full_lodge',
     })
     setEditingDetails(true)
   }
@@ -975,6 +994,7 @@ const BookingDetailPage = () => {
     const check_in = detailsForm.check_in
     const check_out = detailsForm.check_out
     const num_guests = parseInt(detailsForm.num_guests, 10)
+    const rental_option = detailsForm.rental_option || 'full_lodge'
     if (!check_in || !check_out) { alert('Ange in- och utcheckningsdatum.'); return }
     if (new Date(check_out) <= new Date(check_in)) { alert('Utcheckning måste vara efter incheckning.'); return }
     if (Number.isNaN(num_guests) || num_guests < 1) { alert('Ange giltigt antal gäster.'); return }
@@ -982,12 +1002,13 @@ const BookingDetailPage = () => {
     const changed =
       check_in !== booking.check_in?.substring(0, 10) ||
       check_out !== booking.check_out?.substring(0, 10) ||
-      num_guests !== booking.num_guests
+      num_guests !== booking.num_guests ||
+      rental_option !== (booking.rental_option || 'full_lodge')
 
     let pricing = null
     if (changed) {
       const nights = api.nightsBetween(check_in, check_out)
-      const perNight = api.lodgePricePerNight(num_guests, settings)
+      const perNight = api.lodgePricePerNight(num_guests, settings, rental_option)
       const newLodge = perNight * nights
       const addonsTotal = booking.addons_total || 0
       const recalc = window.confirm(
@@ -1004,7 +1025,7 @@ const BookingDetailPage = () => {
 
     setSavingDetails(true)
     try {
-      await api.updateBookingDetails(id, { check_in, check_out, num_guests, pricing })
+      await api.updateBookingDetails(id, { check_in, check_out, num_guests, rental_option, pricing })
       setEditingDetails(false)
       loadBooking()
     } catch (err) { alert('Kunde inte spara bokningsdetaljer: ' + err.message) }
@@ -1193,12 +1214,23 @@ const BookingDetailPage = () => {
                 <input type="date" value={detailsForm.check_out} onChange={e => setDetailsForm(f => ({ ...f, check_out: e.target.value }))} />
               </label>
               <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Boende</span>
+                <select value={detailsForm.rental_option}
+                  onChange={e => {
+                    const ro = e.target.value
+                    const max = api.maxGuestsFor(settings, ro)
+                    setDetailsForm(f => ({ ...f, rental_option: ro, num_guests: Math.min(parseInt(f.num_guests, 10) || 1, max) }))
+                  }}>
+                  {rentalOptionChoices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
                 <span>Gäster</span>
-                <input type="number" min="1" max={parseInt(settings.max_guests) || 8} value={detailsForm.num_guests}
+                <input type="number" min="1" max={api.maxGuestsFor(settings, detailsForm.rental_option)} value={detailsForm.num_guests}
                   onChange={e => setDetailsForm(f => ({ ...f, num_guests: e.target.value }))} style={{ width: '80px', textAlign: 'right' }} />
               </label>
               <p style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', margin: '0.5rem 0 0.75rem 0' }}>
-                Vid ändrat datum eller antal gäster får du en fråga om lodge-priset ska räknas om.
+                Vid ändrat boende, datum eller antal gäster får du en fråga om lodge-priset ska räknas om.
               </p>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={saveDetails} disabled={savingDetails}>{savingDetails ? 'Sparar…' : 'Spara'}</button>
@@ -1211,6 +1243,7 @@ const BookingDetailPage = () => {
               <div className="detail-row"><span>Utcheckning</span><strong>{formatDate(booking.check_out)}</strong></div>
               <div className="detail-row"><span>Nätter</span><strong>{nightCount}</strong></div>
               <div className="detail-row"><span>Gäster</span><strong>{booking.num_guests}</strong></div>
+              <div className="detail-row"><span>Boende</span><strong>{rentalOptionLabel(booking.rental_option)}</strong></div>
               <div className="detail-row"><span>Skapad</span><strong>{formatDate(booking.created_at)}</strong></div>
             </>
           )}

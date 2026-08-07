@@ -10,11 +10,27 @@ const translations = {
     stepper: { dates: 'Dates', addons: 'Extras', contact: 'Contact', summary: 'Summary' },
     lodge: {
       name: 'Vilhelmina River Lodge',
-      description: 'Exclusive lodge by the Vojmån river, north of Vilhelmina. The lodge includes a main cabin, a sleeping cabin, a relaxation & sauna cabin, and a BBQ area.',
+      description: 'Exclusive lodge by the Vojmån river, north of Vilhelmina. The lodge includes a main cabin, a sleeping cabin, a relaxation & sauna cabin, a grill hut and an outdoor BBQ area.',
       perPersonPerNight: 'per person / night',
       minPrice: 'Minimum {{price}} SEK per night',
       maxGuests: 'Max {{count}} guests',
-      features: ['Main cabin', 'Sleeping cabin', 'Relaxation & sauna cabin', 'BBQ area'],
+      features: ['Main cabin', 'Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
+    },
+    rental: {
+      title: 'Choose your stay',
+      description: 'Book the whole lodge, or just the Lillstugan cabin for smaller groups. Either way, the property is yours alone.',
+      options: {
+        full_lodge: {
+          name: 'The whole lodge',
+          description: 'Exclusive use of the entire property — main cabin, sleeping cabin, sauna & relaxation, grill hut and outdoor BBQ.',
+          features: ['Main cabin', 'Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
+        },
+        lillstuga: {
+          name: 'Lillstugan only',
+          description: 'The sleeping cabin with shared sauna, relaxation and BBQ areas — the main cabin is not included. Ideal for 1–2 anglers.',
+          features: ['Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
+        },
+      },
     },
     dates: {
       title: 'Choose your dates',
@@ -103,11 +119,27 @@ const translations = {
     stepper: { dates: 'Datum', addons: 'Tillval', contact: 'Kontakt', summary: 'Sammanfattning' },
     lodge: {
       name: 'Vilhelmina River Lodge',
-      description: 'Exklusiv lodge vid Vojmån, norr om Vilhelmina. Lodgen består av en storstuga, en sovstuga, en relax- och bastustuga samt grillplats.',
+      description: 'Exklusiv lodge vid Vojmån, norr om Vilhelmina. Lodgen består av en storstuga, en sovstuga, en relax- och bastustuga samt en grillkåta och en utegrillplats.',
       perPersonPerNight: 'per person / natt',
       minPrice: 'Minimum {{price}} SEK per natt',
       maxGuests: 'Max {{count}} gäster',
-      features: ['Storstuga', 'Sovstuga', 'Relax & bastu', 'Grillplats'],
+      features: ['Storstuga', 'Sovstuga', 'Relax & bastu', 'Grillkåta & utegrill'],
+    },
+    rental: {
+      title: 'Välj boende',
+      description: 'Boka hela lodgen, eller bara Lillstugan för mindre sällskap. Oavsett vilket har ni fastigheten för er själva.',
+      options: {
+        full_lodge: {
+          name: 'Hela lodgen',
+          description: 'Exklusiv tillgång till hela fastigheten — storstuga, sovstuga, bastu & relax samt grillkåta och utegrillplats.',
+          features: ['Storstuga', 'Sovstuga', 'Bastu & relax', 'Grillkåta & utegrill'],
+        },
+        lillstuga: {
+          name: 'Endast Lillstugan',
+          description: 'Sovstugan med delad bastu, relax och grillplatser — storstugan ingår inte. Perfekt för 1–2 fiskare.',
+          features: ['Lillstugan (sovstuga)', 'Bastu & relax', 'Grillkåta & utegrill'],
+        },
+      },
     },
     dates: {
       title: 'Välj datum',
@@ -196,11 +228,27 @@ const translations = {
     stepper: { dates: 'Datum', addons: 'Extras', contact: 'Kontakt', summary: 'Zusammenfassung' },
     lodge: {
       name: 'Vilhelmina River Lodge',
-      description: 'Exklusive Lodge am Fluss Vojmån, nördlich von Vilhelmina. Die Lodge umfasst eine Haupthütte, eine Schlafhütte, eine Entspannungs- & Saunahütte sowie einen Grillplatz.',
+      description: 'Exklusive Lodge am Fluss Vojmån, nördlich von Vilhelmina. Die Lodge umfasst eine Haupthütte, eine Schlafhütte, eine Entspannungs- & Saunahütte sowie eine Grillkota und einen Außengrillplatz.',
       perPersonPerNight: 'pro Person / Nacht',
       minPrice: 'Mindestpreis {{price}} SEK pro Nacht',
       maxGuests: 'Max. {{count}} Gäste',
-      features: ['Haupthütte', 'Schlafhütte', 'Entspannung & Sauna', 'Grillplatz'],
+      features: ['Haupthütte', 'Schlafhütte', 'Entspannung & Sauna', 'Grillkota & Außengrill'],
+    },
+    rental: {
+      title: 'Unterkunft wählen',
+      description: 'Buchen Sie die ganze Lodge oder nur die Hütte „Lillstugan“ für kleinere Gruppen. In beiden Fällen haben Sie das Anwesen für sich allein.',
+      options: {
+        full_lodge: {
+          name: 'Die ganze Lodge',
+          description: 'Exklusive Nutzung des gesamten Anwesens — Haupthütte, Schlafhütte, Sauna & Entspannung, Grillkota und Außengrillplatz.',
+          features: ['Haupthütte', 'Schlafhütte', 'Sauna & Entspannung', 'Grillkota & Außengrill'],
+        },
+        lillstuga: {
+          name: 'Nur Lillstugan',
+          description: 'Die Schlafhütte mit gemeinsamer Sauna, Entspannung und Grillplätzen — die Haupthütte ist nicht inbegriffen. Ideal für 1–2 Angler.',
+          features: ['Schlafhütte', 'Sauna & Entspannung', 'Grillkota & Außengrill'],
+        },
+      },
     },
     dates: {
       title: 'Wählen Sie Ihre Daten',
@@ -289,11 +337,27 @@ const translations = {
     stepper: { dates: 'Dates', addons: 'Options', contact: 'Contact', summary: 'Résumé' },
     lodge: {
       name: 'Vilhelmina River Lodge',
-      description: 'Lodge exclusive au bord de la rivière Vojmån, au nord de Vilhelmina. Le lodge comprend un chalet principal, un chalet de couchage, un chalet détente & sauna et un espace barbecue.',
+      description: 'Lodge exclusive au bord de la rivière Vojmån, au nord de Vilhelmina. Le lodge comprend un chalet principal, un chalet de couchage, un chalet détente & sauna, une hutte-barbecue et un espace barbecue extérieur.',
       perPersonPerNight: 'par personne / nuit',
       minPrice: 'Minimum {{price}} SEK par nuit',
       maxGuests: 'Max. {{count}} personnes',
-      features: ['Chalet principal', 'Chalet de couchage', 'Détente & sauna', 'Espace barbecue'],
+      features: ['Chalet principal', 'Chalet de couchage', 'Détente & sauna', 'Hutte-barbecue & barbecue ext.'],
+    },
+    rental: {
+      title: 'Choisissez votre séjour',
+      description: 'Réservez tout le lodge, ou seulement le chalet « Lillstugan » pour les petits groupes. Dans les deux cas, la propriété est rien que pour vous.',
+      options: {
+        full_lodge: {
+          name: 'Tout le lodge',
+          description: 'Usage exclusif de toute la propriété — chalet principal, chalet de couchage, sauna & détente, hutte-barbecue et espace barbecue extérieur.',
+          features: ['Chalet principal', 'Chalet de couchage', 'Sauna & détente', 'Hutte-barbecue & barbecue ext.'],
+        },
+        lillstuga: {
+          name: 'Lillstugan uniquement',
+          description: 'Le chalet de couchage avec sauna, détente et espaces barbecue partagés — le chalet principal n’est pas inclus. Idéal pour 1 à 2 pêcheurs.',
+          features: ['Chalet de couchage', 'Sauna & détente', 'Hutte-barbecue & barbecue ext.'],
+        },
+      },
     },
     dates: {
       title: 'Choisissez vos dates',
@@ -379,16 +443,36 @@ const translations = {
   },
 };
 
-// Default lodge config — overridden by settings from Supabase
-const defaultLodge = { name: 'Vilhelmina River Lodge', maxGuests: 8, pricePerPersonPerNight: 950, minPricePerNight: 4000 };
+// Boendealternativ (id:n) — måste matcha bookings.rental_option i databasen.
+const RENTAL_OPTIONS = ['full_lodge', 'lillstuga'];
 
-// Helper to build lodge config from settings
-const getLodgeConfig = (settings) => ({
-  name: 'Vilhelmina River Lodge',
-  maxGuests: parseInt(settings.max_guests) || defaultLodge.maxGuests,
-  pricePerPersonPerNight: parseInt(settings.price_per_person_per_night) || defaultLodge.pricePerPersonPerNight,
-  minPricePerNight: parseInt(settings.min_price_per_night) || defaultLodge.minPricePerNight,
-});
+// Bygg konfiguration för de två boendealternativen utifrån settings.
+// Båda använder samma pris/person; de skiljer sig i golvpris och max antal gäster.
+//   full_lodge = hela lodgen (golv 4000, max 8)
+//   lillstuga  = endast Lillstugan (golv 2000, max 4)
+const getRentalOptions = (settings) => {
+  const perPerson = parseInt(settings.price_per_person_per_night) || 950;
+  return {
+    full_lodge: {
+      id: 'full_lodge',
+      maxGuests: parseInt(settings.max_guests) || 8,
+      pricePerPersonPerNight: perPerson,
+      minPricePerNight: parseInt(settings.min_price_per_night) || 4000,
+    },
+    lillstuga: {
+      id: 'lillstuga',
+      maxGuests: parseInt(settings.lillstuga_max_guests) || 4,
+      pricePerPersonPerNight: perPerson,
+      minPricePerNight: parseInt(settings.lillstuga_min_price_per_night) || 2000,
+    },
+  };
+};
+
+// Konfiguration för det valda boendet (default: hela lodgen).
+const getLodgeConfig = (settings, rentalOption = 'full_lodge') => {
+  const opts = getRentalOptions(settings);
+  return opts[rentalOption] || opts.full_lodge;
+};
 
 const getLodgePricePerNight = (gc, lodge) => Math.max(lodge.pricePerPersonPerNight * gc, lodge.minPricePerNight);
 
@@ -437,6 +521,7 @@ const useBooking = () => {
 
 const initialState = {
   currentStep: 0,
+  rentalOption: 'full_lodge',   // 'full_lodge' | 'lillstuga'
   dates: { checkIn: null, checkOut: null },
   addons: { boat: { selected: false, days: 0, selectedDates: [] }, guide: { selected: false, days: 0, selectedDates: [] }, guide_hunting: { selected: false, days: 0, selectedDates: [] }, linens: { selected: false }, cleaning: { selected: false } },
   guests: { count: 2, name: '', email: '', phone: '', message: '', gdprConsent: false, marketingConsent: false },
@@ -450,6 +535,14 @@ const initialState = {
 const bookingReducer = (state, action) => {
   switch (action.type) {
     case 'SET_STEP': return { ...state, currentStep: action.payload };
+    case 'SET_RENTAL_OPTION': {
+      const rentalOption = action.payload;
+      const opts = getRentalOptions(state.settings);
+      const max = (opts[rentalOption] || opts.full_lodge).maxGuests;
+      // Klampa antal gäster om det nya alternativet rymmer färre.
+      const count = Math.min(state.guests.count, max);
+      return { ...state, rentalOption, guests: { ...state.guests, count } };
+    }
     case 'NEXT_STEP': return { ...state, currentStep: state.currentStep + 1 };
     case 'PREV_STEP': return { ...state, currentStep: Math.max(0, state.currentStep - 1) };
     case 'SET_DATES': {
@@ -528,7 +621,7 @@ const BookingProvider = ({ children }) => {
 const StepDates = () => {
   const { state, dispatch } = useBooking();
   const { t } = useI18n();
-  const lodge = getLodgeConfig(state.settings);
+  const lodge = getLodgeConfig(state.settings, state.rentalOption);
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth() >= 4 ? today.getMonth() : 4);
@@ -614,26 +707,39 @@ const StepDates = () => {
   };
 
   const nightCount = checkIn && checkOut ? Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24)) : 0, canProceed = checkIn && checkOut && nightCount > 0;
-  const lodgeFeatures = t('lodge.features');
+  const fmt = (n) => new Intl.NumberFormat('sv-SE').format(n);
+  const rentalOptions = getRentalOptions(state.settings);
 
   return (
     <div>
       <h2 className="step-title">{t('dates.title')}</h2>
       <p className="step-description">{t('dates.description')}</p>
-      <div className="lodge-card">
-        <div className="lodge-card-header">
-          <h3>{t('lodge.name')}</h3>
-          <div className="lodge-price">{new Intl.NumberFormat('sv-SE').format(lodge.pricePerPersonPerNight)} SEK <span>{t('lodge.perPersonPerNight')}</span></div>
-        </div>
-        <p className="lodge-min-price">{t('lodge.minPrice', { price: new Intl.NumberFormat('sv-SE').format(lodge.minPricePerNight) })}</p>
-        <p className="lodge-description">{t('lodge.description')}</p>
-        <div className="lodge-details">
-          <span className="lodge-max">{t('lodge.maxGuests', { count: lodge.maxGuests })}</span>
-          <div className="card-highlights">
-            {(Array.isArray(lodgeFeatures) ? lodgeFeatures : ['Main cabin', 'Sleeping cabin', 'Relaxation & sauna cabin', 'BBQ area']).map((f) => (
-              <span key={f} className="highlight-tag"><span className="highlight-check">✓</span> {f}</span>
-            ))}
-          </div>
+      <div className="rental-select">
+        <h3 className="rental-select-title">{t('rental.title')}</h3>
+        <p className="rental-select-desc">{t('rental.description')}</p>
+        <div className="card-grid">
+          {RENTAL_OPTIONS.map((optId) => {
+            const opt = rentalOptions[optId];
+            const info = t(`rental.options.${optId}`);
+            const name = typeof info === 'object' ? info.name : optId;
+            const description = typeof info === 'object' ? info.description : '';
+            const feats = (typeof info === 'object' && Array.isArray(info.features)) ? info.features : [];
+            const selected = state.rentalOption === optId;
+            return (
+              <div key={optId} className={`card ${selected ? 'selected' : ''}`} onClick={() => dispatch({ type: 'SET_RENTAL_OPTION', payload: optId })}>
+                <div className="card-title">{name}</div>
+                <div className="card-price">{fmt(opt.pricePerPersonPerNight)} SEK <span>{t('lodge.perPersonPerNight')}</span></div>
+                <div className="lodge-min-price">{t('lodge.minPrice', { price: fmt(opt.minPricePerNight) })}</div>
+                <div className="card-description">{description}</div>
+                <span className="lodge-max">{t('lodge.maxGuests', { count: opt.maxGuests })}</span>
+                <div className="card-highlights">
+                  {feats.map((f) => (
+                    <span key={f} className="highlight-tag"><span className="highlight-check">✓</span> {f}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="guest-count-section">
@@ -854,7 +960,7 @@ const StepContact = () => {
 const StepSummary = () => {
   const { state, dispatch } = useBooking();
   const { t, lang } = useI18n();
-  const lodge = getLodgeConfig(state.settings);
+  const lodge = getLodgeConfig(state.settings, state.rentalOption);
   const addons = getAddonsList(state.dbAddons);
   const [submitted, setSubmitted] = useState(false), [sending, setSending] = useState(false);
   const months = t('dates.months'), selectedAddons = addons.filter((a) => state.addons[a.id]?.selected), guestCount = state.guests.count;
@@ -901,6 +1007,7 @@ const StepSummary = () => {
           check_out: formatDateStr(state.dates.checkOut),
           num_guests: guestCount,
           message: state.guests.message || null,
+          rental_option: state.rentalOption,
         },
         addons: selectedAddons.map((addon) => {
           const addonState = state.addons[addon.id];
@@ -960,7 +1067,7 @@ const StepSummary = () => {
       </div>
       <div className="summary-section">
         <h3>{t('summary.lodge')}</h3>
-        <div className="summary-row"><span>{t('lodge.name')}</span><strong>{formatPrice(lodgePricePerNight * nightCount)}</strong></div>
+        <div className="summary-row"><span>{t(`rental.options.${state.rentalOption}.name`)}</span><strong>{formatPrice(lodgePricePerNight * nightCount)}</strong></div>
         <div className="summary-row" style={{ color: 'var(--fm-text-muted)', fontSize: '0.85rem' }}>
           <span>{nightCount} {nightCount === 1 ? t('summary.night') : t('summary.nightsPlural')} × {formatPrice(lodgePricePerNight)} ({guestCount} {guestCount === 1 ? t('addons.guest') : t('addons.guests')} × {formatPrice(lodge.pricePerPersonPerNight)})</span>
         </div>
@@ -1053,7 +1160,7 @@ const BookingApp = () => {
           </div>
           <BookingWizard />
         </div>
-        <style dangerouslySetInnerHTML={{__html: `@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Inter+Tight:wght@300;400;500;600&display=swap');:root{--fm-orange:#E38A05;--fm-orange-light:rgba(227,138,5,0.12);--fm-orange-hover:#c77a04;--fm-brown:#8A501E;--fm-olive:#568C03;--fm-dark-green:#4A592A;--fm-steel:#3C6680;--fm-sky:#7EADBF;--fm-light:#E0E0E0;--fm-black:#1A1A1A;--fm-white:#FFFFFF;--fm-bg:#FAF9F6;--fm-bg-card:#FFFFFF;--fm-border:#E0DDD5;--fm-text:#1A1A1A;--fm-text-muted:#6B6B6B;--fm-success:#568C03;--fm-error:#C0392B;--font-heading:'Archivo Narrow',Arial,sans-serif;--font-body:'Inter Tight',Arial,sans-serif;--space-xs:0.25rem;--space-sm:0.5rem;--space-md:1rem;--space-lg:1.5rem;--space-xl:2rem;--space-2xl:3rem;--radius-sm:4px;--radius-md:8px;--radius-lg:12px}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:var(--font-body);color:var(--fm-text);background:var(--fm-bg);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}h1,h2,h3,h4,h5,h6{font-family:var(--font-heading);font-weight:600;line-height:1.2;color:var(--fm-text)}button{cursor:pointer;font-family:var(--font-body)}input,select,textarea{font-family:var(--font-body)}#root{max-width:960px;margin:0 auto;padding:var(--space-sm)}@media(min-width:640px){#root{padding:var(--space-lg)}}.booking-app{min-height:100vh}.booking-header{text-align:center;padding:var(--space-2xl) 0 var(--space-xl);border-bottom:2px solid var(--fm-orange);margin-bottom:var(--space-2xl);position:relative}.language-switcher{display:flex;justify-content:center;gap:var(--space-xs);margin-bottom:var(--space-lg)}.lang-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid var(--fm-border);border-radius:20px;background:var(--fm-white);font-size:0.8rem;color:var(--fm-text-muted);transition:all 0.2s}.lang-btn:hover{border-color:var(--fm-orange);color:var(--fm-text)}.lang-btn.active{background:var(--fm-orange);border-color:var(--fm-orange);color:var(--fm-white)}.lang-flag{font-size:1rem}.lang-code{font-weight:600;letter-spacing:0.5px;display:none}@media(min-width:768px){.lang-code{display:inline}}.booking-title{font-size:2.5rem;font-weight:700;color:var(--fm-text);letter-spacing:-0.5px}.booking-tagline{font-size:1.1rem;color:var(--fm-orange);margin-top:var(--space-sm);font-weight:400;font-style:italic}.stepper{display:flex;justify-content:center;gap:var(--space-xs);margin-bottom:var(--space-2xl);flex-wrap:wrap}.stepper-step{display:flex;align-items:center;gap:var(--space-sm);padding:var(--space-sm) var(--space-md);border-radius:var(--radius-lg);font-size:0.85rem;font-weight:500;color:var(--fm-text-muted);background:transparent;transition:all 0.2s ease}.stepper-step.active{background:var(--fm-orange-light);color:var(--fm-orange)}.stepper-step.completed{color:var(--fm-olive)}.stepper-number{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;border:2px solid var(--fm-border);background:var(--fm-white);flex-shrink:0}.stepper-step.active .stepper-number{border-color:var(--fm-orange);background:var(--fm-orange);color:var(--fm-white)}.stepper-step.completed .stepper-number{border-color:var(--fm-olive);background:var(--fm-olive);color:var(--fm-white)}.stepper-label{display:inline;font-size:0.75rem}@media(min-width:768px){.stepper-label{font-size:0.85rem}}.step-container{animation:fadeIn 0.3s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.step-title{font-size:1.75rem;margin-bottom:var(--space-sm);color:var(--fm-text)}.step-description{color:var(--fm-text-muted);margin-bottom:var(--space-xl);font-size:0.95rem}.step-nav{display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-2xl);padding-top:var(--space-xl);border-top:1px solid var(--fm-border)}.btn{padding:0.75rem 1.75rem;border-radius:var(--radius-md);font-size:0.95rem;font-weight:500;border:none;transition:all 0.2s ease;display:inline-flex;align-items:center;gap:var(--space-sm)}.btn-primary{background:var(--fm-orange);color:var(--fm-white)}.btn-primary:hover{background:var(--fm-orange-hover)}.btn-primary:disabled{background:var(--fm-border);color:var(--fm-text-muted);cursor:not-allowed}.btn-secondary{background:transparent;color:var(--fm-text-muted);border:1px solid var(--fm-border)}.btn-secondary:hover{border-color:var(--fm-text-muted);color:var(--fm-text)}.card-grid{display:grid;grid-template-columns:1fr;gap:var(--space-lg)}@media(min-width:640px){.card-grid{grid-template-columns:repeat(2,1fr)}}.card{background:var(--fm-bg-card);border:2px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-xl);cursor:pointer;transition:all 0.2s ease;text-align:left}.card:hover{border-color:var(--fm-orange);box-shadow:0 4px 12px rgba(227,138,5,0.1)}.card.selected{border-color:var(--fm-orange);background:var(--fm-orange-light)}.card-title{font-family:var(--font-heading);font-size:1.2rem;font-weight:600;margin-bottom:var(--space-sm)}.card-description{color:var(--fm-text-muted);font-size:0.9rem;margin-bottom:var(--space-md);line-height:1.5}.card-price{font-size:1.3rem;font-weight:600;color:var(--fm-orange)}.card-price span{font-size:0.85rem;font-weight:400;color:var(--fm-text-muted)}.card-highlights{display:flex;flex-wrap:wrap;gap:var(--space-sm);margin-top:var(--space-md)}.highlight-tag{background:var(--fm-bg);color:var(--fm-dark-green);font-size:0.8rem;padding:0.25rem 0.75rem;border-radius:20px;font-weight:500;display:inline-flex;align-items:center;gap:4px}.highlight-check{color:var(--fm-olive);font-weight:700;font-size:0.85rem}.card.selected .highlight-tag{background:var(--fm-white)}.lodge-card{background:var(--fm-bg-card);border:2px solid var(--fm-orange);border-radius:var(--radius-lg);padding:var(--space-xl);margin-bottom:var(--space-xl)}.lodge-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-sm);flex-wrap:wrap;gap:var(--space-sm)}.lodge-card-header h3{font-family:var(--font-heading);font-size:1.4rem;font-weight:700}.lodge-price{font-size:1.3rem;font-weight:600;color:var(--fm-orange)}.lodge-price span{font-size:0.85rem;font-weight:400;color:var(--fm-text-muted)}.lodge-min-price{font-size:0.8rem;color:var(--fm-text-muted);margin-bottom:var(--space-sm);font-style:italic}.lodge-description{color:var(--fm-text-muted);font-size:0.9rem;margin-bottom:var(--space-md);line-height:1.5}.lodge-details{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-md)}.lodge-max{font-size:0.85rem;font-weight:600;color:var(--fm-dark-green);background:rgba(86,140,3,0.1);padding:0.25rem 0.75rem;border-radius:20px}.guest-count-section{background:var(--fm-bg-card);border:1px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-lg) var(--space-xl);margin-bottom:var(--space-xl);display:flex;align-items:center;justify-content:space-between}.guest-count-label{font-weight:500;font-size:0.95rem;color:var(--fm-text)}.calendar-container{background:var(--fm-bg-card);border:1px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-md);overflow:hidden}@media(min-width:640px){.calendar-container{padding:var(--space-xl)}}.calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-lg)}.calendar-month{font-family:var(--font-heading);font-size:1.3rem;font-weight:600}.calendar-nav-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--fm-border);background:var(--fm-white);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--fm-text);transition:all 0.2s}.calendar-nav-btn:hover{border-color:var(--fm-orange);color:var(--fm-orange)}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;width:100%}.calendar-weekday{text-align:center;font-size:0.65rem;font-weight:600;color:var(--fm-text-muted);padding:var(--space-xs) 0;text-transform:uppercase;letter-spacing:0.3px;min-width:0;overflow:hidden}@media(min-width:640px){.calendar-weekday{font-size:0.75rem;padding:var(--space-sm);letter-spacing:0.5px}}.calendar-day{display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);font-size:0.8rem;border:none;background:transparent;color:var(--fm-text);transition:all 0.15s;padding:0.5rem 0;min-width:0}@media(min-width:640px){.calendar-day{font-size:0.9rem;padding:0.6rem 0;border-radius:var(--radius-md)}}.calendar-day:hover:not(.disabled):not(.empty){background:var(--fm-orange-light);color:var(--fm-orange)}.calendar-day.selected{background:var(--fm-orange);color:var(--fm-white);font-weight:600}.calendar-day.in-range{background:var(--fm-orange-light);color:var(--fm-orange);border-radius:0}.calendar-day.range-start{border-radius:var(--radius-md) 0 0 var(--radius-md)}.calendar-day.range-end{border-radius:0 var(--radius-md) var(--radius-md) 0}.calendar-day.disabled{color:var(--fm-border);cursor:not-allowed}.calendar-day.empty{cursor:default}.calendar-day.today{font-weight:700;border:2px solid var(--fm-orange)}.date-selection-info{display:flex;gap:var(--space-xl);margin-top:var(--space-lg);padding:var(--space-md);background:var(--fm-orange-light);border-radius:var(--radius-md);justify-content:center;font-size:0.9rem}.date-selection-info strong{color:var(--fm-orange)}.addon-card{display:flex;align-items:flex-start;gap:var(--space-md);background:var(--fm-bg-card);border:2px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-lg);cursor:pointer;transition:all 0.2s ease}.addon-card:hover{border-color:var(--fm-orange)}.addon-card.selected{border-color:var(--fm-orange);background:var(--fm-orange-light)}.addon-checkbox{width:24px;height:24px;border-radius:var(--radius-sm);border:2px solid var(--fm-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:all 0.2s}.addon-card.selected .addon-checkbox{background:var(--fm-orange);border-color:var(--fm-orange);color:var(--fm-white)}.addon-info{flex:1}.addon-name{font-weight:600;margin-bottom:var(--space-xs)}.addon-description{color:var(--fm-text-muted);font-size:0.85rem;margin-bottom:var(--space-sm)}.addon-price{color:var(--fm-orange);font-weight:600}.addon-price span{font-weight:400;color:var(--fm-text-muted);font-size:0.85rem}.addon-card-wrapper{display:flex;flex-direction:column}.addon-day-selector{background:var(--fm-orange-light);border:2px solid var(--fm-orange);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:var(--space-lg);display:flex;align-items:center;gap:var(--space-lg);flex-wrap:wrap}.addon-card.selected{border-radius:var(--radius-lg) var(--radius-lg) 0 0}.addon-card-wrapper .addon-card:not(.selected){border-radius:var(--radius-lg)}.addon-day-label{font-size:0.85rem;font-weight:500;color:var(--fm-text)}.day-counter{display:flex;align-items:center;gap:var(--space-sm)}.day-counter button{width:32px;height:32px;border-radius:50%;border:2px solid var(--fm-border);background:var(--fm-white);font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--fm-text)}.day-counter button:hover:not(:disabled){border-color:var(--fm-orange);color:var(--fm-orange)}.day-counter button:disabled{opacity:0.3;cursor:not-allowed}.day-count{font-size:1rem;font-weight:600;min-width:60px;text-align:center}.addon-day-total{margin-left:auto;font-weight:600;color:var(--fm-orange);font-size:1rem}.guide-date-picker{background:var(--fm-bg-card);border:2px solid var(--fm-orange);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:var(--space-lg)}.addon-day-selector+.guide-date-picker{border-radius:0 0 var(--radius-lg) var(--radius-lg)}.addon-card-wrapper:has(.guide-date-picker) .addon-day-selector{border-radius:0}.guide-date-grid{display:flex;flex-wrap:wrap;gap:var(--space-sm);margin-top:var(--space-sm)}.guide-date-btn{padding:0.5rem 1rem;border:2px solid var(--fm-border);border-radius:var(--radius-md);background:var(--fm-white);font-size:0.85rem;font-weight:500;color:var(--fm-text);transition:all 0.2s}.guide-date-btn:hover:not(.disabled){border-color:var(--fm-orange);color:var(--fm-orange)}.guide-date-btn.chosen{background:var(--fm-orange);border-color:var(--fm-orange);color:var(--fm-white)}.guide-date-btn.disabled{opacity:0.35;cursor:not-allowed}.form-grid{display:grid;grid-template-columns:1fr;gap:var(--space-lg)}@media(min-width:640px){.form-grid{grid-template-columns:repeat(2,1fr)}.form-grid .form-group.full-width{grid-column:1/-1}}.form-group label{display:block;font-size:0.85rem;font-weight:500;color:var(--fm-text);margin-bottom:var(--space-sm)}.form-group input,.form-group select,.form-group textarea{width:100%;padding:0.75rem 1rem;border:1px solid var(--fm-border);border-radius:var(--radius-md);font-size:0.95rem;background:var(--fm-white);color:var(--fm-text);transition:border-color 0.2s}.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--fm-orange);box-shadow:0 0 0 3px var(--fm-orange-light)}.form-group textarea{resize:vertical;min-height:100px}.summary-section{background:var(--fm-bg-card);border:1px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-xl);margin-bottom:var(--space-lg)}.summary-section h3{font-size:0.85rem;color:var(--fm-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-md);font-family:var(--font-body);font-weight:600}.summary-row{display:flex;justify-content:space-between;align-items:center;padding:var(--space-sm) 0}.summary-row+.summary-row{border-top:1px solid var(--fm-border)}.summary-total{font-size:1.3rem;font-weight:600;color:var(--fm-orange);padding-top:var(--space-md);border-top:2px solid var(--fm-orange);margin-top:var(--space-md);text-align:right}.summary-total span{color:var(--fm-text);font-weight:400}.confirmation-box{text-align:center;padding:var(--space-2xl)}.confirmation-icon{font-size:3rem;margin-bottom:var(--space-lg)}.confirmation-box h2{font-size:1.75rem;margin-bottom:var(--space-md);color:var(--fm-olive)}.checkbox-label{display:flex;align-items:flex-start;cursor:pointer;font-size:0.9rem;color:var(--fm-text);line-height:1.5}.checkbox-label input[type="checkbox"]{margin-top:4px;margin-right:12px;width:20px;height:20px;accent-color:var(--fm-orange);flex-shrink:0}.confirmation-box p{color:var(--fm-text-muted);max-width:480px;margin:0 auto;line-height:1.7}.guest-counter{display:flex;align-items:center;gap:var(--space-md)}.guest-counter button{width:40px;height:40px;border-radius:50%;border:2px solid var(--fm-border);background:var(--fm-white);font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--fm-text)}.guest-counter button:hover:not(:disabled){border-color:var(--fm-orange);color:var(--fm-orange)}.guest-counter button:disabled{opacity:0.3;cursor:not-allowed}.guest-count{font-size:1.5rem;font-weight:600;min-width:40px;text-align:center}`}} />
+        <style dangerouslySetInnerHTML={{__html: `@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Inter+Tight:wght@300;400;500;600&display=swap');:root{--fm-orange:#E38A05;--fm-orange-light:rgba(227,138,5,0.12);--fm-orange-hover:#c77a04;--fm-brown:#8A501E;--fm-olive:#568C03;--fm-dark-green:#4A592A;--fm-steel:#3C6680;--fm-sky:#7EADBF;--fm-light:#E0E0E0;--fm-black:#1A1A1A;--fm-white:#FFFFFF;--fm-bg:#FAF9F6;--fm-bg-card:#FFFFFF;--fm-border:#E0DDD5;--fm-text:#1A1A1A;--fm-text-muted:#6B6B6B;--fm-success:#568C03;--fm-error:#C0392B;--font-heading:'Archivo Narrow',Arial,sans-serif;--font-body:'Inter Tight',Arial,sans-serif;--space-xs:0.25rem;--space-sm:0.5rem;--space-md:1rem;--space-lg:1.5rem;--space-xl:2rem;--space-2xl:3rem;--radius-sm:4px;--radius-md:8px;--radius-lg:12px}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:var(--font-body);color:var(--fm-text);background:var(--fm-bg);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}h1,h2,h3,h4,h5,h6{font-family:var(--font-heading);font-weight:600;line-height:1.2;color:var(--fm-text)}button{cursor:pointer;font-family:var(--font-body)}input,select,textarea{font-family:var(--font-body)}#root{max-width:960px;margin:0 auto;padding:var(--space-sm)}@media(min-width:640px){#root{padding:var(--space-lg)}}.booking-app{min-height:100vh}.booking-header{text-align:center;padding:var(--space-2xl) 0 var(--space-xl);border-bottom:2px solid var(--fm-orange);margin-bottom:var(--space-2xl);position:relative}.language-switcher{display:flex;justify-content:center;gap:var(--space-xs);margin-bottom:var(--space-lg)}.lang-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid var(--fm-border);border-radius:20px;background:var(--fm-white);font-size:0.8rem;color:var(--fm-text-muted);transition:all 0.2s}.lang-btn:hover{border-color:var(--fm-orange);color:var(--fm-text)}.lang-btn.active{background:var(--fm-orange);border-color:var(--fm-orange);color:var(--fm-white)}.lang-flag{font-size:1rem}.lang-code{font-weight:600;letter-spacing:0.5px;display:none}@media(min-width:768px){.lang-code{display:inline}}.booking-title{font-size:2.5rem;font-weight:700;color:var(--fm-text);letter-spacing:-0.5px}.booking-tagline{font-size:1.1rem;color:var(--fm-orange);margin-top:var(--space-sm);font-weight:400;font-style:italic}.stepper{display:flex;justify-content:center;gap:var(--space-xs);margin-bottom:var(--space-2xl);flex-wrap:wrap}.stepper-step{display:flex;align-items:center;gap:var(--space-sm);padding:var(--space-sm) var(--space-md);border-radius:var(--radius-lg);font-size:0.85rem;font-weight:500;color:var(--fm-text-muted);background:transparent;transition:all 0.2s ease}.stepper-step.active{background:var(--fm-orange-light);color:var(--fm-orange)}.stepper-step.completed{color:var(--fm-olive)}.stepper-number{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;border:2px solid var(--fm-border);background:var(--fm-white);flex-shrink:0}.stepper-step.active .stepper-number{border-color:var(--fm-orange);background:var(--fm-orange);color:var(--fm-white)}.stepper-step.completed .stepper-number{border-color:var(--fm-olive);background:var(--fm-olive);color:var(--fm-white)}.stepper-label{display:inline;font-size:0.75rem}@media(min-width:768px){.stepper-label{font-size:0.85rem}}.step-container{animation:fadeIn 0.3s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.step-title{font-size:1.75rem;margin-bottom:var(--space-sm);color:var(--fm-text)}.step-description{color:var(--fm-text-muted);margin-bottom:var(--space-xl);font-size:0.95rem}.step-nav{display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-2xl);padding-top:var(--space-xl);border-top:1px solid var(--fm-border)}.btn{padding:0.75rem 1.75rem;border-radius:var(--radius-md);font-size:0.95rem;font-weight:500;border:none;transition:all 0.2s ease;display:inline-flex;align-items:center;gap:var(--space-sm)}.btn-primary{background:var(--fm-orange);color:var(--fm-white)}.btn-primary:hover{background:var(--fm-orange-hover)}.btn-primary:disabled{background:var(--fm-border);color:var(--fm-text-muted);cursor:not-allowed}.btn-secondary{background:transparent;color:var(--fm-text-muted);border:1px solid var(--fm-border)}.btn-secondary:hover{border-color:var(--fm-text-muted);color:var(--fm-text)}.card-grid{display:grid;grid-template-columns:1fr;gap:var(--space-lg)}@media(min-width:640px){.card-grid{grid-template-columns:repeat(2,1fr)}}.card{background:var(--fm-bg-card);border:2px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-xl);cursor:pointer;transition:all 0.2s ease;text-align:left}.card:hover{border-color:var(--fm-orange);box-shadow:0 4px 12px rgba(227,138,5,0.1)}.card.selected{border-color:var(--fm-orange);background:var(--fm-orange-light)}.card-title{font-family:var(--font-heading);font-size:1.2rem;font-weight:600;margin-bottom:var(--space-sm)}.card-description{color:var(--fm-text-muted);font-size:0.9rem;margin-bottom:var(--space-md);line-height:1.5}.card-price{font-size:1.3rem;font-weight:600;color:var(--fm-orange)}.card-price span{font-size:0.85rem;font-weight:400;color:var(--fm-text-muted)}.card-highlights{display:flex;flex-wrap:wrap;gap:var(--space-sm);margin-top:var(--space-md)}.highlight-tag{background:var(--fm-bg);color:var(--fm-dark-green);font-size:0.8rem;padding:0.25rem 0.75rem;border-radius:20px;font-weight:500;display:inline-flex;align-items:center;gap:4px}.highlight-check{color:var(--fm-olive);font-weight:700;font-size:0.85rem}.card.selected .highlight-tag{background:var(--fm-white)}.rental-select{margin-bottom:var(--space-xl)}.rental-select-title{font-size:1.15rem;margin-bottom:var(--space-xs)}.rental-select-desc{color:var(--fm-text-muted);font-size:0.9rem;margin-bottom:var(--space-md)}.rental-select .card{display:flex;flex-direction:column;gap:var(--space-xs)}.rental-select .card .lodge-max{align-self:flex-start;margin-top:var(--space-xs)}.rental-select .card-price{margin-top:var(--space-xs)}.lodge-card{background:var(--fm-bg-card);border:2px solid var(--fm-orange);border-radius:var(--radius-lg);padding:var(--space-xl);margin-bottom:var(--space-xl)}.lodge-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-sm);flex-wrap:wrap;gap:var(--space-sm)}.lodge-card-header h3{font-family:var(--font-heading);font-size:1.4rem;font-weight:700}.lodge-price{font-size:1.3rem;font-weight:600;color:var(--fm-orange)}.lodge-price span{font-size:0.85rem;font-weight:400;color:var(--fm-text-muted)}.lodge-min-price{font-size:0.8rem;color:var(--fm-text-muted);margin-bottom:var(--space-sm);font-style:italic}.lodge-description{color:var(--fm-text-muted);font-size:0.9rem;margin-bottom:var(--space-md);line-height:1.5}.lodge-details{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-md)}.lodge-max{font-size:0.85rem;font-weight:600;color:var(--fm-dark-green);background:rgba(86,140,3,0.1);padding:0.25rem 0.75rem;border-radius:20px}.guest-count-section{background:var(--fm-bg-card);border:1px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-lg) var(--space-xl);margin-bottom:var(--space-xl);display:flex;align-items:center;justify-content:space-between}.guest-count-label{font-weight:500;font-size:0.95rem;color:var(--fm-text)}.calendar-container{background:var(--fm-bg-card);border:1px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-md);overflow:hidden}@media(min-width:640px){.calendar-container{padding:var(--space-xl)}}.calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-lg)}.calendar-month{font-family:var(--font-heading);font-size:1.3rem;font-weight:600}.calendar-nav-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--fm-border);background:var(--fm-white);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--fm-text);transition:all 0.2s}.calendar-nav-btn:hover{border-color:var(--fm-orange);color:var(--fm-orange)}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;width:100%}.calendar-weekday{text-align:center;font-size:0.65rem;font-weight:600;color:var(--fm-text-muted);padding:var(--space-xs) 0;text-transform:uppercase;letter-spacing:0.3px;min-width:0;overflow:hidden}@media(min-width:640px){.calendar-weekday{font-size:0.75rem;padding:var(--space-sm);letter-spacing:0.5px}}.calendar-day{display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);font-size:0.8rem;border:none;background:transparent;color:var(--fm-text);transition:all 0.15s;padding:0.5rem 0;min-width:0}@media(min-width:640px){.calendar-day{font-size:0.9rem;padding:0.6rem 0;border-radius:var(--radius-md)}}.calendar-day:hover:not(.disabled):not(.empty){background:var(--fm-orange-light);color:var(--fm-orange)}.calendar-day.selected{background:var(--fm-orange);color:var(--fm-white);font-weight:600}.calendar-day.in-range{background:var(--fm-orange-light);color:var(--fm-orange);border-radius:0}.calendar-day.range-start{border-radius:var(--radius-md) 0 0 var(--radius-md)}.calendar-day.range-end{border-radius:0 var(--radius-md) var(--radius-md) 0}.calendar-day.disabled{color:var(--fm-border);cursor:not-allowed}.calendar-day.empty{cursor:default}.calendar-day.today{font-weight:700;border:2px solid var(--fm-orange)}.date-selection-info{display:flex;gap:var(--space-xl);margin-top:var(--space-lg);padding:var(--space-md);background:var(--fm-orange-light);border-radius:var(--radius-md);justify-content:center;font-size:0.9rem}.date-selection-info strong{color:var(--fm-orange)}.addon-card{display:flex;align-items:flex-start;gap:var(--space-md);background:var(--fm-bg-card);border:2px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-lg);cursor:pointer;transition:all 0.2s ease}.addon-card:hover{border-color:var(--fm-orange)}.addon-card.selected{border-color:var(--fm-orange);background:var(--fm-orange-light)}.addon-checkbox{width:24px;height:24px;border-radius:var(--radius-sm);border:2px solid var(--fm-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:all 0.2s}.addon-card.selected .addon-checkbox{background:var(--fm-orange);border-color:var(--fm-orange);color:var(--fm-white)}.addon-info{flex:1}.addon-name{font-weight:600;margin-bottom:var(--space-xs)}.addon-description{color:var(--fm-text-muted);font-size:0.85rem;margin-bottom:var(--space-sm)}.addon-price{color:var(--fm-orange);font-weight:600}.addon-price span{font-weight:400;color:var(--fm-text-muted);font-size:0.85rem}.addon-card-wrapper{display:flex;flex-direction:column}.addon-day-selector{background:var(--fm-orange-light);border:2px solid var(--fm-orange);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:var(--space-lg);display:flex;align-items:center;gap:var(--space-lg);flex-wrap:wrap}.addon-card.selected{border-radius:var(--radius-lg) var(--radius-lg) 0 0}.addon-card-wrapper .addon-card:not(.selected){border-radius:var(--radius-lg)}.addon-day-label{font-size:0.85rem;font-weight:500;color:var(--fm-text)}.day-counter{display:flex;align-items:center;gap:var(--space-sm)}.day-counter button{width:32px;height:32px;border-radius:50%;border:2px solid var(--fm-border);background:var(--fm-white);font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--fm-text)}.day-counter button:hover:not(:disabled){border-color:var(--fm-orange);color:var(--fm-orange)}.day-counter button:disabled{opacity:0.3;cursor:not-allowed}.day-count{font-size:1rem;font-weight:600;min-width:60px;text-align:center}.addon-day-total{margin-left:auto;font-weight:600;color:var(--fm-orange);font-size:1rem}.guide-date-picker{background:var(--fm-bg-card);border:2px solid var(--fm-orange);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:var(--space-lg)}.addon-day-selector+.guide-date-picker{border-radius:0 0 var(--radius-lg) var(--radius-lg)}.addon-card-wrapper:has(.guide-date-picker) .addon-day-selector{border-radius:0}.guide-date-grid{display:flex;flex-wrap:wrap;gap:var(--space-sm);margin-top:var(--space-sm)}.guide-date-btn{padding:0.5rem 1rem;border:2px solid var(--fm-border);border-radius:var(--radius-md);background:var(--fm-white);font-size:0.85rem;font-weight:500;color:var(--fm-text);transition:all 0.2s}.guide-date-btn:hover:not(.disabled){border-color:var(--fm-orange);color:var(--fm-orange)}.guide-date-btn.chosen{background:var(--fm-orange);border-color:var(--fm-orange);color:var(--fm-white)}.guide-date-btn.disabled{opacity:0.35;cursor:not-allowed}.form-grid{display:grid;grid-template-columns:1fr;gap:var(--space-lg)}@media(min-width:640px){.form-grid{grid-template-columns:repeat(2,1fr)}.form-grid .form-group.full-width{grid-column:1/-1}}.form-group label{display:block;font-size:0.85rem;font-weight:500;color:var(--fm-text);margin-bottom:var(--space-sm)}.form-group input,.form-group select,.form-group textarea{width:100%;padding:0.75rem 1rem;border:1px solid var(--fm-border);border-radius:var(--radius-md);font-size:0.95rem;background:var(--fm-white);color:var(--fm-text);transition:border-color 0.2s}.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--fm-orange);box-shadow:0 0 0 3px var(--fm-orange-light)}.form-group textarea{resize:vertical;min-height:100px}.summary-section{background:var(--fm-bg-card);border:1px solid var(--fm-border);border-radius:var(--radius-lg);padding:var(--space-xl);margin-bottom:var(--space-lg)}.summary-section h3{font-size:0.85rem;color:var(--fm-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-md);font-family:var(--font-body);font-weight:600}.summary-row{display:flex;justify-content:space-between;align-items:center;padding:var(--space-sm) 0}.summary-row+.summary-row{border-top:1px solid var(--fm-border)}.summary-total{font-size:1.3rem;font-weight:600;color:var(--fm-orange);padding-top:var(--space-md);border-top:2px solid var(--fm-orange);margin-top:var(--space-md);text-align:right}.summary-total span{color:var(--fm-text);font-weight:400}.confirmation-box{text-align:center;padding:var(--space-2xl)}.confirmation-icon{font-size:3rem;margin-bottom:var(--space-lg)}.confirmation-box h2{font-size:1.75rem;margin-bottom:var(--space-md);color:var(--fm-olive)}.checkbox-label{display:flex;align-items:flex-start;cursor:pointer;font-size:0.9rem;color:var(--fm-text);line-height:1.5}.checkbox-label input[type="checkbox"]{margin-top:4px;margin-right:12px;width:20px;height:20px;accent-color:var(--fm-orange);flex-shrink:0}.confirmation-box p{color:var(--fm-text-muted);max-width:480px;margin:0 auto;line-height:1.7}.guest-counter{display:flex;align-items:center;gap:var(--space-md)}.guest-counter button{width:40px;height:40px;border-radius:50%;border:2px solid var(--fm-border);background:var(--fm-white);font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--fm-text)}.guest-counter button:hover:not(:disabled){border-color:var(--fm-orange);color:var(--fm-orange)}.guest-counter button:disabled{opacity:0.3;cursor:not-allowed}.guest-count{font-size:1.5rem;font-weight:600;min-width:40px;text-align:center}`}} />
       </BookingProvider>
     </I18nProvider>
   );

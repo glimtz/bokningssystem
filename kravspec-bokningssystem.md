@@ -29,6 +29,7 @@ Bokningssystemet ska spegla Flightmodes kärn-DNA: kvalitet, exklusivitet och en
 
 - **Kalendervy** — Se lediga perioder i realtid
 - **Lodge-info** — Presentation av Vilhelmina Lodge (4 000 kr/dag, max 8 gäster)
+- **Boendeval** — Gästen väljer att hyra hela lodgen (golv 4 000 kr/natt, max 8 gäster) eller endast Lillstugan (sovstuga + delad relax/bastu + grillplatser, golv 2 000 kr/natt, max 4 gäster). Bokningen är exklusiv i båda fallen. (Tillagt 2026-08-07)
 - **Tillval** — Båthyra (Alloycraft J370, 1 000 kr/dag) och fiskeguide (8 000 kr/dag inkl lunch)
 - **Bokningsformulär** — Namn, kontaktuppgifter, antal gäster, önskemål/allergier
 - **Förfrågan** — Gästen skickar en bokningsförfrågan (inte direktbokning)

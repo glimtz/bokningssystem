@@ -81,7 +81,7 @@ export async function getBookedDates() {
  *
  * @param {Object} params
  * @param {Object} params.guest - { name, email, phone, language, gdpr_consent, marketing_consent }
- * @param {Object} params.booking - { check_in, check_out, num_guests, message }
+ * @param {Object} params.booking - { check_in, check_out, num_guests, message, rental_option }
  * @param {Array} params.addons - [{ addon_id, quantity, unit_price, total_price, selected_dates }]
  * @param {Object} params.pricing - { lodge_total, addons_total, total_price, deposit_amount }
  */
@@ -113,6 +113,7 @@ export async function createBookingRequest({ guest, booking, addons, pricing }) 
       num_guests: booking.num_guests,
       message: booking.message || null,
       status: 'pending',
+      rental_option: booking.rental_option || 'full_lodge',
       lodge_total: pricing.lodge_total,
       addons_total: pricing.addons_total,
       total_price: pricing.total_price,

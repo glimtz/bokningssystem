@@ -10,6 +10,10 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Rabatt/specialpris syns nu (2026-08-07)** — när admin sätter ett specialpris för lodgen sparas det
+  ordinarie priset i `bookings.lodge_list_price` (**migration `005_add_lodge_list_price.sql`**). Bokningens
+  Priser-vy och utskriften visar då "Ordinarie boendepris" (överstruket) samt "Rabatt −X kr (Y %)". Kan även
+  fyllas i/ändras via prisredigeraren i detaljvyn.
 - **Utskrift av bokning i admin (2026-08-07)** — "🖨 Skriv ut"-knapp i bokningens detaljvy
   (`BookingDetailPage`, `handlePrint`) öppnar en ren, printbar sammanställning (gäst, boende, datum,
   tillval, priser, betalningsstatus samt ev. gästmeddelande och interna anteckningar) i ett nytt fönster
@@ -158,7 +162,8 @@ Bokningssystem/
     │   ├── 002_payment_tracking.sql          # advance/final/deposit/refunded timestamps
     │   ├── 003_fix_reference_generator.sql   # ref-generator använder MAX i st f COUNT
     │   ├── 003_add_hunting_guide.sql         # tillval guide_hunting (jaktguide)
-    │   └── 004_add_rental_option.sql         # NYTT boende Lillstugan (bookings.rental_option + settings)
+    │   ├── 004_add_rental_option.sql         # boende Lillstugan (bookings.rental_option + settings)
+    │   └── 005_add_lodge_list_price.sql      # NYTT ordinarie lodge-pris för rabattvisning (bookings.lodge_list_price)
     ├── scripts/
     │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/

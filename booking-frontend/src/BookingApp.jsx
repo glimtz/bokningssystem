@@ -18,7 +18,7 @@ const translations = {
     },
     rental: {
       title: 'Choose your stay',
-      description: 'Book the whole lodge, or just the Lillstugan cabin for smaller groups. Either way, the property is yours alone.',
+      description: 'Book the whole lodge, or just the Little Cabin for smaller groups. Either way, the property is yours alone.',
       options: {
         full_lodge: {
           name: 'The whole lodge',
@@ -26,8 +26,8 @@ const translations = {
           features: ['Main cabin', 'Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
         },
         lillstuga: {
-          name: 'Lillstugan only',
-          description: 'The sleeping cabin with shared sauna, relaxation and BBQ areas — the main cabin is not included. Ideal for 1–2 anglers.',
+          name: 'The Little Cabin',
+          description: 'The sleeping cabin, plus the sauna, relaxation and BBQ areas — you have the whole property to yourselves; the main cabin simply stays closed. Ideal for 1–2 anglers.',
           features: ['Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
         },
       },
@@ -135,8 +135,8 @@ const translations = {
           features: ['Storstuga', 'Sovstuga', 'Bastu & relax', 'Grillkåta & utegrill'],
         },
         lillstuga: {
-          name: 'Endast Lillstugan',
-          description: 'Sovstugan med delad bastu, relax och grillplatser — storstugan ingår inte. Perfekt för 1–2 fiskare.',
+          name: 'Lillstugan',
+          description: 'Sovstugan, plus bastu, relax och grillplatserna — ni har hela fastigheten för er själva; storstugan står bara stängd. Perfekt för 1–2 fiskare.',
           features: ['Lillstugan (sovstuga)', 'Bastu & relax', 'Grillkåta & utegrill'],
         },
       },
@@ -236,7 +236,7 @@ const translations = {
     },
     rental: {
       title: 'Unterkunft wählen',
-      description: 'Buchen Sie die ganze Lodge oder nur die Hütte „Lillstugan“ für kleinere Gruppen. In beiden Fällen haben Sie das Anwesen für sich allein.',
+      description: 'Buchen Sie die ganze Lodge oder nur die kleine Hütte für kleinere Gruppen. In beiden Fällen haben Sie das Anwesen für sich allein.',
       options: {
         full_lodge: {
           name: 'Die ganze Lodge',
@@ -244,8 +244,8 @@ const translations = {
           features: ['Haupthütte', 'Schlafhütte', 'Sauna & Entspannung', 'Grillkota & Außengrill'],
         },
         lillstuga: {
-          name: 'Nur Lillstugan',
-          description: 'Die Schlafhütte mit gemeinsamer Sauna, Entspannung und Grillplätzen — die Haupthütte ist nicht inbegriffen. Ideal für 1–2 Angler.',
+          name: 'Die kleine Hütte',
+          description: 'Die Schlafhütte samt Sauna, Entspannung und Grillplätzen — Sie haben das gesamte Anwesen für sich allein; die Haupthütte bleibt einfach geschlossen. Ideal für 1–2 Angler.',
           features: ['Schlafhütte', 'Sauna & Entspannung', 'Grillkota & Außengrill'],
         },
       },
@@ -345,7 +345,7 @@ const translations = {
     },
     rental: {
       title: 'Choisissez votre séjour',
-      description: 'Réservez tout le lodge, ou seulement le chalet « Lillstugan » pour les petits groupes. Dans les deux cas, la propriété est rien que pour vous.',
+      description: 'Réservez tout le lodge, ou seulement le petit chalet pour les petits groupes. Dans les deux cas, la propriété est rien que pour vous.',
       options: {
         full_lodge: {
           name: 'Tout le lodge',
@@ -353,8 +353,8 @@ const translations = {
           features: ['Chalet principal', 'Chalet de couchage', 'Sauna & détente', 'Hutte-barbecue & barbecue ext.'],
         },
         lillstuga: {
-          name: 'Lillstugan uniquement',
-          description: 'Le chalet de couchage avec sauna, détente et espaces barbecue partagés — le chalet principal n’est pas inclus. Idéal pour 1 à 2 pêcheurs.',
+          name: 'Le petit chalet',
+          description: 'Le chalet de couchage, plus le sauna, la détente et les espaces barbecue — vous avez toute la propriété rien que pour vous ; le chalet principal reste simplement fermé. Idéal pour 1 à 2 pêcheurs.',
           features: ['Chalet de couchage', 'Sauna & détente', 'Hutte-barbecue & barbecue ext.'],
         },
       },

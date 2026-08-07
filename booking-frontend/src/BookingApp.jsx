@@ -477,7 +477,10 @@ const getLodgeConfig = (settings, rentalOption = 'full_lodge') => {
 const getLodgePricePerNight = (gc, lodge) => Math.max(lodge.pricePerPersonPerNight * gc, lodge.minPricePerNight);
 
 // Helper to build addons list from DB addons (with fallback)
-const getAddonsList = (dbAddons) => {
+const getAddonsList = (dbAddons, rentalOption = 'full_lodge', settings = {}) => {
+  // Städning kostar mindre om man bara hyr Lillstugan (mindre yta att städa).
+  const cleaningPrice = parseInt(settings.lillstuga_cleaning_price) || 700;
+  const adjust = (a) => (a.id === 'cleaning' && rentalOption === 'lillstuga') ? { ...a, price: cleaningPrice } : a;
   if (!dbAddons || dbAddons.length === 0) {
     return [
       { id: 'boat', name: 'Boat rental', price: 1000, type: 'perDay' },
@@ -485,7 +488,7 @@ const getAddonsList = (dbAddons) => {
       { id: 'guide_hunting', name: 'Hunting guide', price: 8000, type: 'perDay' },
       { id: 'linens', name: 'Bed linens & towels', price: 150, type: 'perPerson' },
       { id: 'cleaning', name: 'Final cleaning', price: 1200, type: 'flat' },
-    ];
+    ].map(adjust);
   }
   const typeMap = { per_day: 'perDay', per_person: 'perPerson', flat: 'flat' };
   return dbAddons.filter(a => a.is_active).map(a => ({
@@ -493,7 +496,7 @@ const getAddonsList = (dbAddons) => {
     name: a.translations?.en?.name || a.slug,
     price: a.price,
     type: typeMap[a.price_type] || a.price_type,
-  }));
+  })).map(adjust);
 };
 
 const useI18n = () => {
@@ -795,7 +798,7 @@ const StepDates = () => {
 const StepAddons = () => {
   const { state, dispatch } = useBooking();
   const { t } = useI18n();
-  const addons = getAddonsList(state.dbAddons);
+  const addons = getAddonsList(state.dbAddons, state.rentalOption, state.settings);
   const nightCount = state.dates.checkIn && state.dates.checkOut ? Math.round((state.dates.checkOut - state.dates.checkIn) / (1000 * 60 * 60 * 24)) : 0;
   const guestCount = state.guests.count;
   const formatPrice = (price) => new Intl.NumberFormat('sv-SE').format(price) + ' SEK';
@@ -961,7 +964,7 @@ const StepSummary = () => {
   const { state, dispatch } = useBooking();
   const { t, lang } = useI18n();
   const lodge = getLodgeConfig(state.settings, state.rentalOption);
-  const addons = getAddonsList(state.dbAddons);
+  const addons = getAddonsList(state.dbAddons, state.rentalOption, state.settings);
   const [submitted, setSubmitted] = useState(false), [sending, setSending] = useState(false);
   const months = t('dates.months'), selectedAddons = addons.filter((a) => state.addons[a.id]?.selected), guestCount = state.guests.count;
   const nightCount = state.dates.checkIn && state.dates.checkOut ? Math.round((state.dates.checkOut - state.dates.checkIn) / (1000 * 60 * 60 * 24)) : 0;

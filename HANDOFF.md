@@ -331,6 +331,10 @@ SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
   för hela lodgen och 2 000 kr för Lillstugan; pris/person (950 kr) är gemensamt
 - Frontend läser rätt golv/maxgäster per val i både publikt flöde och admin
   (`getRentalOptions` i `BookingApp.jsx`, `lodgePricePerNight`/`maxGuestsFor` i `adminApi.js`)
+- **Städning:** tillvalet "Slutstädning" kostar **700 kr** när `rental_option = 'lillstuga'` (annars ordinarie
+  2 500 kr). Styrs i frontend (`getAddonsList` i `BookingApp.jsx` samt admin `NewBookingModal`/`BookingDetailPage`)
+  med default 700, som kan överstyras via valfri setting `lillstuga_cleaning_price`. Priset sparas på bokningen
+  i `booking_addons.unit_price`, så det ligger fast även om regeln ändras senare
 - Idempotent (`on conflict`), säker att köra om
 - **Att göra på ny miljö:** kör migrationen i SQL Editor
 

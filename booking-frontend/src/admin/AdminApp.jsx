@@ -473,6 +473,9 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   const lodgeTotal = nights > 0 ? perNight * nights : 0
   const deposit = parseInt(settings.deposit_amount) || 5000
   const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
+  // Städning kostar mindre om man bara hyr Lillstugan.
+  const cleaningPrice = parseInt(settings.lillstuga_cleaning_price) || 700
+  const effPrice = (a) => (form.rental_option === 'lillstuga' && (a.slug === 'cleaning' || a.id === 'cleaning')) ? cleaningPrice : a.price
 
   const stayDates = () => {
     if (!form.check_in || !form.check_out || nights <= 0) return []
@@ -492,7 +495,7 @@ const NewBookingModal = ({ onClose, onCreated }) => {
     if (a.price_type === 'per_person') return numGuests
     return 1
   }
-  const addonLineTotal = (a) => addonSel[a.id]?.selected ? api.addonRowTotal(a, { quantity: addonQty(a), numGuests }) : 0
+  const addonLineTotal = (a) => addonSel[a.id]?.selected ? api.addonRowTotal({ ...a, price: effPrice(a) }, { quantity: addonQty(a), numGuests }) : 0
   const addonsTotal = allAddons.reduce((s, a) => s + addonLineTotal(a), 0)
   // Effektivt lodge-pris: specialpris om det är påslaget, annars beräknat pris
   const specialLodgeNum = Math.max(0, parseInt(specialLodgeTotal, 10) || 0)
@@ -537,8 +540,8 @@ const NewBookingModal = ({ onClose, onCreated }) => {
         return {
           addon_id: a.id,
           quantity,
-          unit_price: a.price,
-          total_price: api.addonRowTotal(a, { quantity, numGuests }),
+          unit_price: effPrice(a),
+          total_price: api.addonRowTotal({ ...a, price: effPrice(a) }, { quantity, numGuests }),
           selected_dates: (a.price_type === 'per_day' && sel.dates?.length) ? sel.dates : null,
         }
       })
@@ -616,7 +619,7 @@ const NewBookingModal = ({ onClose, onCreated }) => {
                       <input type="checkbox" checked={!!sel?.selected} onChange={() => toggleAddon(a.id)} style={{ marginRight: '0.5rem' }} />
                       {name}
                       <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-text-muted)', marginLeft: '1.5rem' }}>
-                        {isPerDay ? 'Per dag' : a.price_type === 'per_person' ? `Per person (× ${numGuests})` : 'Fast pris'} · {formatPrice(a.price)}
+                        {isPerDay ? 'Per dag' : a.price_type === 'per_person' ? `Per person (× ${numGuests})` : 'Fast pris'} · {formatPrice(effPrice(a))}
                       </span>
                     </span>
                     <strong>{formatPrice(addonLineTotal(a))}</strong>
@@ -1052,8 +1055,10 @@ const BookingDetailPage = () => {
     let quantity = 1
     if (addon.price_type === 'per_day') quantity = nights || 1
     else if (addon.price_type === 'per_person') quantity = numGuests
-    const unit_price = addon.price
-    const total_price = api.addonRowTotal(addon, { quantity, numGuests })
+    const isLillstuga = (booking.rental_option || 'full_lodge') === 'lillstuga'
+    const cleaningPrice = parseInt(settings.lillstuga_cleaning_price) || 700
+    const unit_price = ((addon.slug === 'cleaning' || addon.id === 'cleaning') && isLillstuga) ? cleaningPrice : addon.price
+    const total_price = api.addonRowTotal({ ...addon, price: unit_price }, { quantity, numGuests })
     try {
       await api.addBookingAddon(id, { addon_id: addon.id, quantity, unit_price, total_price, selected_dates: null })
       setAddAddonId('')
@@ -1386,7 +1391,9 @@ const BookingDetailPage = () => {
                   .filter(a => !booking.booking_addons?.some(ba => ba.addon_id === a.id))
                   .map(a => {
                     const name = a.translations?.sv?.name || a.translations?.en?.name || a.slug
-                    return <option key={a.id} value={a.id}>{name} ({formatPrice(a.price)})</option>
+                    const isLillstuga = (booking.rental_option || 'full_lodge') === 'lillstuga'
+                    const p = (a.slug === 'cleaning' && isLillstuga) ? (parseInt(settings.lillstuga_cleaning_price) || 700) : a.price
+                    return <option key={a.id} value={a.id}>{name} ({formatPrice(p)})</option>
                   })}
               </select>
               <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={handleAddAddon} disabled={!addAddonId}>Lägg till</button>

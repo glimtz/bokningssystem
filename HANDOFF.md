@@ -10,6 +10,11 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Utskrift av bokning i admin (2026-08-07)** — "🖨 Skriv ut"-knapp i bokningens detaljvy
+  (`BookingDetailPage`, `handlePrint`) öppnar en ren, printbar sammanställning (gäst, boende, datum,
+  tillval, priser, betalningsstatus samt ev. gästmeddelande och interna anteckningar) i ett nytt fönster
+  och triggar utskrift. Helt frontend — inget skickas någonstans. (Mejl valdes bort; admin skriver ut /
+  sparar som PDF och skickar själv vid behov.)
 - **Nytt boendealternativ: Lillstugan (2026-08-07)** — gästen kan nu välja mellan att hyra
   *hela lodgen* (golv 4 000 kr/natt, max 8 gäster) eller *endast Lillstugan* (sovstuga + delad
   relax/bastu + grillkåta/utegrillplats, storstugan ingår ej; golv 2 000 kr/natt, max 4 gäster).

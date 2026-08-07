@@ -1130,6 +1130,96 @@ const BookingDetailPage = () => {
     }
   }
 
+  // Öppna en ren, printbar sammanställning av bokningen i ett nytt fönster
+  // och trigga utskrift. Allt sker i frontend — inget skickas någonstans.
+  const handlePrint = () => {
+    if (!booking) return
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+    const fmtDate = (d) => d ? new Date(d).toLocaleDateString('sv-SE') : '—'
+    const fmtPrice = (p) => new Intl.NumberFormat('sv-SE').format(p || 0) + ' kr'
+    const nights = Math.round((new Date(booking.check_out) - new Date(booking.check_in)) / 86400000)
+    const statusLabel = statusOptions.find(o => o.value === booking.status)?.label || booking.status
+    const rentalLabel = rentalOptionLabel(booking.rental_option)
+    const g = booking.guests || {}
+    const addonRows = (booking.booking_addons || []).map(ba => {
+      const name = ba.addons?.translations?.sv?.name || ba.addons?.translations?.en?.name || ba.addons?.slug || 'Tillval'
+      const dates = (ba.selected_dates && ba.selected_dates.length)
+        ? ba.selected_dates.map(d => new Date(d + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })).join(', ')
+        : ''
+      return `<tr><td>${esc(name)}${ba.quantity > 1 ? ` (× ${ba.quantity})` : ''}${dates ? `<div class="muted">${esc(dates)}</div>` : ''}</td><td class="right">${fmtPrice(ba.total_price)}</td></tr>`
+    }).join('') || '<tr><td class="muted">Inga tillval</td><td></td></tr>'
+
+    const payRow = (label, ts, amount) => `<tr><td>${label}</td><td class="right">${fmtPrice(amount)}</td><td class="right">${ts ? 'Mottagen ' + fmtDate(ts) : 'Ej mottagen'}</td></tr>`
+    const advance = Math.round((booking.total_price || 0) * 0.5)
+    const finalPay = (booking.total_price || 0) - advance
+    const payments = payRow('Bokningsavgift (50%)', booking.advance_paid_at, advance)
+      + payRow('Slutbetalning (50%)', booking.final_paid_at, finalPay)
+      + payRow('Deposition', booking.deposit_paid_at, booking.deposit_amount)
+
+    const html = `<!doctype html><html lang="sv"><head><meta charset="utf-8"><title>Bokning ${esc(booking.reference)}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;color:#1A1A1A;margin:0;padding:32px}
+  .wrap{max-width:720px;margin:0 auto}
+  header{border-bottom:3px solid #E38A05;padding-bottom:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end}
+  h1{font-size:22px;margin:0}
+  .sub{color:#6B6B6B;font-size:13px;margin-top:2px}
+  .ref{font-size:20px;font-weight:700;color:#E38A05}
+  .status{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;background:#f0ede6;color:#333;margin-top:4px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:#6B6B6B;margin:22px 0 8px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td{padding:6px 0;border-bottom:1px solid #eee;vertical-align:top}
+  .right{text-align:right;white-space:nowrap}
+  .muted{color:#8a8578;font-size:12px}
+  .total td{border-top:2px solid #E38A05;border-bottom:none;font-weight:700;font-size:16px;padding-top:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:14px}
+  .grid div span{color:#6B6B6B}
+  footer{margin-top:32px;padding-top:12px;border-top:1px solid #eee;color:#8a8578;font-size:12px}
+  @media print{body{padding:0}}
+</style></head><body><div class="wrap">
+  <header>
+    <div><h1>Vilhelmina Lodge</h1><div class="sub">Bokningssammanställning · Flightmode Adventures</div></div>
+    <div style="text-align:right"><div class="ref">${esc(booking.reference)}</div><div class="status">${esc(statusLabel)}</div></div>
+  </header>
+  <h2>Gäst</h2>
+  <div class="grid">
+    <div><span>Namn:</span> ${esc(g.name)}</div>
+    <div><span>E-post:</span> ${esc(g.email)}</div>
+    <div><span>Telefon:</span> ${esc(g.phone || '—')}</div>
+    <div><span>Språk:</span> ${esc((g.language || '').toUpperCase())}</div>
+  </div>
+  <h2>Vistelse</h2>
+  <div class="grid">
+    <div><span>Boende:</span> ${esc(rentalLabel)}</div>
+    <div><span>Gäster:</span> ${booking.num_guests}</div>
+    <div><span>Incheckning:</span> ${fmtDate(booking.check_in)}</div>
+    <div><span>Utcheckning:</span> ${fmtDate(booking.check_out)}</div>
+    <div><span>Nätter:</span> ${nights}</div>
+  </div>
+  <h2>Tillval</h2>
+  <table>${addonRows}</table>
+  <h2>Priser</h2>
+  <table>
+    <tr><td>Boende</td><td class="right">${fmtPrice(booking.lodge_total)}</td></tr>
+    <tr><td>Tillval</td><td class="right">${fmtPrice(booking.addons_total)}</td></tr>
+    <tr class="total"><td>Totalt</td><td class="right">${fmtPrice(booking.total_price)}</td></tr>
+  </table>
+  <h2>Betalning</h2>
+  <table>${payments}</table>
+  ${booking.message ? `<h2>Meddelande från gäst</h2><div style="font-size:14px;white-space:pre-wrap">${esc(booking.message)}</div>` : ''}
+  ${booking.admin_notes ? `<h2>Interna anteckningar</h2><div style="font-size:13px;white-space:pre-wrap;color:#555">${esc(booking.admin_notes)}</div>` : ''}
+  <footer>Flightmode Adventures AB · info@flightmode.se<br>Utskrivet ${new Date().toLocaleDateString('sv-SE')} ${new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</footer>
+</div></body></html>`
+
+    const w = window.open('', '_blank', 'width=820,height=920')
+    if (!w) { alert('Kunde inte öppna utskriftsfönstret. Tillåt popup-fönster för sidan och försök igen.'); return }
+    w.document.open()
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    setTimeout(() => { try { w.print() } catch (e) { /* användaren kan skriva ut manuellt */ } }, 300)
+  }
+
   if (loading) return <div className="admin-loading">Laddar bokning...</div>
   if (!booking) return <div className="admin-error">Bokningen kunde inte hittas.</div>
 
@@ -1139,9 +1229,14 @@ const BookingDetailPage = () => {
 
   return (
     <div>
-      <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => navigate('/admin/bookings')} style={{ marginBottom: '1rem' }}>
-        ← Tillbaka
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => navigate('/admin/bookings')}>
+          ← Tillbaka
+        </button>
+        <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={handlePrint}>
+          🖨 Skriv ut
+        </button>
+      </div>
 
       <div className="detail-header">
         <h1 className="admin-page-title">{booking.reference}</h1>

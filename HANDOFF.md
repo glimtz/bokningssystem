@@ -10,6 +10,10 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Org.nr / personnr på gäst (2026-08-07)** — nytt frivilligt fält `guests.id_number`
+  (**migration `006_add_guest_id_number.sql`**) för fakturering. Fylls i från admin i "Ny bokning" och i
+  gästredigeringen, visas i gästkortet och på utskriften. Känslig PII — hanteras enligt GDPR/RLS som övriga
+  gästuppgifter. (Ej exponerat i det publika bokningsflödet.)
 - **Rabatt på totalpris (2026-08-07)** — admin kan ge en rabatt (i kr) på totalpriset, både i "Ny bokning"
   och via prisredigeraren i detaljvyn. Rabatten lagras inte i egen kolumn utan räknas ut som
   `(lodge_total + addons_total) − total_price`; Priser-vyn och utskriften visar Delsumma, "Rabatt −X kr (Y %)"
@@ -164,7 +168,8 @@ Bokningssystem/
     │   ├── 003_fix_reference_generator.sql   # ref-generator använder MAX i st f COUNT
     │   ├── 003_add_hunting_guide.sql         # tillval guide_hunting (jaktguide)
     │   ├── 004_add_rental_option.sql         # boende Lillstugan (bookings.rental_option + settings)
-    │   └── 005_add_lodge_list_price.sql      # NYTT ordinarie lodge-pris för rabattvisning (bookings.lodge_list_price)
+    │   ├── 005_add_lodge_list_price.sql      # (oanvänd numera — rabatt räknas ut, ej lagrad)
+    │   └── 006_add_guest_id_number.sql       # NYTT org.nr/personnr på gäst (guests.id_number)
     ├── scripts/
     │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/

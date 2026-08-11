@@ -287,7 +287,7 @@ export function addonRowTotal(addon, { quantity, numGuests }) {
 // Uppdatera gästuppgifter (guests-raden kopplad till bokningen).
 export async function updateGuest(guestId, fields) {
   const update = {}
-  for (const k of ['name', 'email', 'phone', 'language', 'marketing_consent']) {
+  for (const k of ['name', 'email', 'phone', 'id_number', 'language', 'marketing_consent']) {
     if (k in fields) update[k] = fields[k]
   }
   const { data, error } = await supabase
@@ -377,6 +377,7 @@ export async function createBooking({ guest, booking, addons, pricing }) {
       name: guest.name,
       email: guest.email,
       phone: guest.phone || null,
+      id_number: guest.id_number || null,
       language: guest.language || 'sv',
       gdpr_consent: true,
       gdpr_consent_at: new Date().toISOString(),

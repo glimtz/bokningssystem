@@ -445,7 +445,7 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', language: 'sv',
+    name: '', email: '', phone: '', id_number: '', language: 'sv',
     check_in: '', check_out: '', num_guests: 2, status: 'confirmed', message: '',
     rental_option: 'full_lodge',
   })
@@ -543,7 +543,7 @@ const NewBookingModal = ({ onClose, onCreated }) => {
         ? `Rabatt: ${formatPrice(discountNum)} (${discountPct} %) på totalpris (ordinarie ${formatPrice(baseTotal)})`
         : null
       const res = await api.createBooking({
-        guest: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), language: form.language, marketing_consent: false },
+        guest: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), id_number: form.id_number.trim() || null, language: form.language, marketing_consent: false },
         booking: { check_in: form.check_in, check_out: form.check_out, num_guests: numGuests, message: form.message || null, status: form.status, admin_notes: discountNote, rental_option: form.rental_option },
         addons,
         pricing: { lodge_total: lodgeTotal, addons_total: addonsTotal, total_price: total, deposit_amount: deposit },
@@ -573,6 +573,8 @@ const NewBookingModal = ({ onClose, onCreated }) => {
               <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={{ width: '60%' }} /></label>
             <label className="detail-row" style={{ alignItems: 'center' }}><span>Telefon</span>
               <input type="text" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} style={{ width: '60%' }} /></label>
+            <label className="detail-row" style={{ alignItems: 'center' }}><span>Org.nr / personnr</span>
+              <input type="text" value={form.id_number} onChange={e => setForm(f => ({ ...f, id_number: e.target.value }))} style={{ width: '60%' }} /></label>
             <label className="detail-row" style={{ alignItems: 'center' }}><span>Språk</span>
               <select value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))}>
                 <option value="sv">SV</option><option value="en">EN</option><option value="de">DE</option><option value="fr">FR</option>
@@ -814,7 +816,7 @@ const BookingDetailPage = () => {
   const [settings, setSettings] = useState({})
   const [allAddons, setAllAddons] = useState([])
   const [editingGuest, setEditingGuest] = useState(false)
-  const [guestForm, setGuestForm] = useState({ name: '', email: '', phone: '', language: 'sv', marketing_consent: false })
+  const [guestForm, setGuestForm] = useState({ name: '', email: '', phone: '', id_number: '', language: 'sv', marketing_consent: false })
   const [savingGuest, setSavingGuest] = useState(false)
   const [editingDetails, setEditingDetails] = useState(false)
   const [detailsForm, setDetailsForm] = useState({ check_in: '', check_out: '', num_guests: 1, rental_option: 'full_lodge' })
@@ -950,6 +952,7 @@ const BookingDetailPage = () => {
       name: booking.guests?.name || '',
       email: booking.guests?.email || '',
       phone: booking.guests?.phone || '',
+      id_number: booking.guests?.id_number || '',
       language: booking.guests?.language || 'sv',
       marketing_consent: !!booking.guests?.marketing_consent,
     })
@@ -963,6 +966,7 @@ const BookingDetailPage = () => {
         name: guestForm.name.trim(),
         email: guestForm.email.trim(),
         phone: guestForm.phone.trim() || null,
+        id_number: guestForm.id_number.trim() || null,
         language: guestForm.language,
         marketing_consent: guestForm.marketing_consent,
       })
@@ -1178,6 +1182,7 @@ const BookingDetailPage = () => {
     <div><span>Namn:</span> ${esc(g.name)}</div>
     <div><span>E-post:</span> ${esc(g.email)}</div>
     <div><span>Telefon:</span> ${esc(g.phone || '—')}</div>
+    ${g.id_number ? `<div><span>Org.nr / personnr:</span> ${esc(g.id_number)}</div>` : ''}
     <div><span>Språk:</span> ${esc((g.language || '').toUpperCase())}</div>
   </div>
   <h2>Vistelse</h2>
@@ -1266,6 +1271,10 @@ const BookingDetailPage = () => {
                 <input type="text" value={guestForm.phone} onChange={e => setGuestForm(f => ({ ...f, phone: e.target.value }))} style={{ width: '60%' }} />
               </label>
               <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Org.nr / personnr</span>
+                <input type="text" value={guestForm.id_number} onChange={e => setGuestForm(f => ({ ...f, id_number: e.target.value }))} style={{ width: '60%' }} />
+              </label>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
                 <span>Språk</span>
                 <select value={guestForm.language} onChange={e => setGuestForm(f => ({ ...f, language: e.target.value }))}>
                   <option value="sv">SV</option>
@@ -1288,6 +1297,7 @@ const BookingDetailPage = () => {
               <div className="detail-row"><span>Namn</span><strong>{booking.guests?.name}</strong></div>
               <div className="detail-row"><span>E-post</span><strong>{booking.guests?.email}</strong></div>
               <div className="detail-row"><span>Telefon</span><strong>{booking.guests?.phone || '—'}</strong></div>
+              {booking.guests?.id_number && <div className="detail-row"><span>Org.nr / personnr</span><strong>{booking.guests.id_number}</strong></div>}
               <div className="detail-row"><span>Språk</span><strong>{booking.guests?.language?.toUpperCase()}</strong></div>
               {booking.guests?.marketing_consent && <div className="detail-row"><span>Marknadsföring</span><strong>Ja</strong></div>}
             </>

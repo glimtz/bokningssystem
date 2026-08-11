@@ -10,10 +10,11 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
-- **Rabatt/specialpris syns nu (2026-08-07)** — när admin sätter ett specialpris för lodgen sparas det
-  ordinarie priset i `bookings.lodge_list_price` (**migration `005_add_lodge_list_price.sql`**). Bokningens
-  Priser-vy och utskriften visar då "Ordinarie boendepris" (överstruket) samt "Rabatt −X kr (Y %)". Kan även
-  fyllas i/ändras via prisredigeraren i detaljvyn.
+- **Rabatt på totalpris (2026-08-07)** — admin kan ge en rabatt (i kr) på totalpriset, både i "Ny bokning"
+  och via prisredigeraren i detaljvyn. Rabatten lagras inte i egen kolumn utan räknas ut som
+  `(lodge_total + addons_total) − total_price`; Priser-vyn och utskriften visar Delsumma, "Rabatt −X kr (Y %)"
+  och Totalt. Ersatte den tidigare "specialpris för lodge"-logiken. Kolumnen `bookings.lodge_list_price`
+  (migration 005) används inte längre och kan tas bort vid tillfälle.
 - **Utskrift av bokning i admin (2026-08-07)** — "🖨 Skriv ut"-knapp i bokningens detaljvy
   (`BookingDetailPage`, `handlePrint`) öppnar en ren, printbar sammanställning (gäst, boende, datum,
   tillval, priser, betalningsstatus samt ev. gästmeddelande och interna anteckningar) i ett nytt fönster
@@ -388,7 +389,7 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 
 ### 8.4 Skapa bokning i admin — "+ Ny bokning" (NYTT)
 - `NewBookingModal` i `AdminApp.jsx` — skapa en bokning direkt (gäst, datum, antal gäster, status, tillval)
-- **Specialpris för lodge (2026-08-05):** kryssrutan "Specialpris för lodge" i prissammanställningen låter admin skriva över det beräknade lodge-priset. Ordinarie pris visas som referens, totalen räknas om (specialpris + tillval), och specialpriset sparas som `lodge_total`. En notering läggs automatiskt i `admin_notes`, t.ex. "Specialpris för lodge: 8 000 kr (ordinarie 12 000 kr)"
+- **Rabatt på totalpris (uppdaterad 2026-08-07):** i prissammanställningen anger admin en rabatt (i kr) på totalpriset. `lodge_total` sparas som ordinarie beräknat pris, `total_price = lodge_total + addons_total − rabatt`. Rabatten lagras inte separat utan härleds som `(lodge_total + addons_total) − total_price`. En notering läggs automatiskt i `admin_notes`, t.ex. "Rabatt: 3 000 kr (15 %) på totalpris (ordinarie 20 000 kr)". (Ersatte den tidigare kryssrutan "Specialpris för lodge".)
 - Vid "Skapa bokning" anropas `createBooking({guest, booking, addons, pricing})` i `adminApi.js`
 
 ### 8.5 Nya funktioner i adminApi.js (2026-08-05)

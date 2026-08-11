@@ -451,9 +451,8 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   })
   // addonSel: { [addonId]: { selected, days, dates: [] } }
   const [addonSel, setAddonSel] = useState({})
-  // Specialpris: skriv över det beräknade lodge-priset
-  const [useSpecialPrice, setUseSpecialPrice] = useState(false)
-  const [specialLodgeTotal, setSpecialLodgeTotal] = useState('')
+  // Rabatt på totalpriset (kr)
+  const [discountAmount, setDiscountAmount] = useState('')
 
   useEffect(() => {
     (async () => {
@@ -497,16 +496,11 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   }
   const addonLineTotal = (a) => addonSel[a.id]?.selected ? api.addonRowTotal({ ...a, price: effPrice(a) }, { quantity: addonQty(a), numGuests }) : 0
   const addonsTotal = allAddons.reduce((s, a) => s + addonLineTotal(a), 0)
-  // Effektivt lodge-pris: specialpris om det är påslaget, annars beräknat pris
-  const specialLodgeNum = Math.max(0, parseInt(specialLodgeTotal, 10) || 0)
-  const effectiveLodgeTotal = useSpecialPrice ? specialLodgeNum : lodgeTotal
-  const total = effectiveLodgeTotal + addonsTotal
-
-  // Slå på specialpris och förifyll med det beräknade priset som utgångspunkt
-  const toggleSpecialPrice = (on) => {
-    setUseSpecialPrice(on)
-    if (on && !specialLodgeTotal) setSpecialLodgeTotal(String(lodgeTotal || 0))
-  }
+  // Rabatt på totalpriset: total = (lodge + tillval) − rabatt
+  const baseTotal = lodgeTotal + addonsTotal
+  const discountNum = Math.min(Math.max(0, parseInt(discountAmount, 10) || 0), baseTotal)
+  const discountPct = discountNum > 0 && baseTotal > 0 ? Math.round((discountNum / baseTotal) * 100) : 0
+  const total = baseTotal - discountNum
 
   const toggleAddon = (id) => setAddonSel(prev => ({
     ...prev,
@@ -545,14 +539,14 @@ const NewBookingModal = ({ onClose, onCreated }) => {
           selected_dates: (a.price_type === 'per_day' && sel.dates?.length) ? sel.dates : null,
         }
       })
-      const specialNote = useSpecialPrice
-        ? `Specialpris för lodge: ${formatPrice(effectiveLodgeTotal)} (ordinarie ${formatPrice(lodgeTotal)})`
+      const discountNote = discountNum > 0
+        ? `Rabatt: ${formatPrice(discountNum)} (${discountPct} %) på totalpris (ordinarie ${formatPrice(baseTotal)})`
         : null
       const res = await api.createBooking({
         guest: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), language: form.language, marketing_consent: false },
-        booking: { check_in: form.check_in, check_out: form.check_out, num_guests: numGuests, message: form.message || null, status: form.status, admin_notes: specialNote, rental_option: form.rental_option },
+        booking: { check_in: form.check_in, check_out: form.check_out, num_guests: numGuests, message: form.message || null, status: form.status, admin_notes: discountNote, rental_option: form.rental_option },
         addons,
-        pricing: { lodge_total: effectiveLodgeTotal, lodge_list_price: useSpecialPrice ? lodgeTotal : null, addons_total: addonsTotal, total_price: total, deposit_amount: deposit },
+        pricing: { lodge_total: lodgeTotal, addons_total: addonsTotal, total_price: total, deposit_amount: deposit },
       })
       onCreated(res.id)
     } catch (err) { alert('Kunde inte skapa bokning: ' + err.message) }
@@ -651,30 +645,21 @@ const NewBookingModal = ({ onClose, onCreated }) => {
             })}
 
             <div style={{ borderTop: '2px solid var(--admin-border, #ddd)', marginTop: '1rem', paddingTop: '0.75rem' }}>
+              <div className="detail-row"><span>Lodge ({nights > 0 ? nights : 0} nätter)</span><strong>{formatPrice(lodgeTotal)}</strong></div>
+              <div className="detail-row"><span>Tillval</span><strong>{formatPrice(addonsTotal)}</strong></div>
               <label className="detail-row" style={{ alignItems: 'center' }}>
-                <span>
-                  <input type="checkbox" checked={useSpecialPrice} onChange={e => toggleSpecialPrice(e.target.checked)} style={{ marginRight: '0.5rem' }} />
-                  Specialpris för lodge
+                <span>Rabatt på totalpris
+                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>
+                    Ordinarie: {formatPrice(baseTotal)}{discountNum > 0 ? ` · −${discountPct} %` : ''}
+                  </span>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <input type="number" min="0" step="100" value={discountAmount} placeholder="0"
+                    onChange={e => setDiscountAmount(e.target.value)}
+                    style={{ width: '110px', textAlign: 'right' }} />
+                  <span style={{ color: 'var(--admin-text-muted)' }}>kr</span>
                 </span>
               </label>
-              {useSpecialPrice ? (
-                <label className="detail-row" style={{ alignItems: 'center' }}>
-                  <span>Lodge (specialpris)
-                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>
-                      Ordinarie: {formatPrice(lodgeTotal)} ({nights > 0 ? nights : 0} nätter)
-                    </span>
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <input type="number" min="0" step="1" value={specialLodgeTotal}
-                      onChange={e => setSpecialLodgeTotal(e.target.value)}
-                      style={{ width: '110px', textAlign: 'right' }} />
-                    <span style={{ color: 'var(--admin-text-muted)' }}>kr</span>
-                  </span>
-                </label>
-              ) : (
-                <div className="detail-row"><span>Lodge ({nights > 0 ? nights : 0} nätter)</span><strong>{formatPrice(lodgeTotal)}</strong></div>
-              )}
-              <div className="detail-row"><span>Tillval</span><strong>{formatPrice(addonsTotal)}</strong></div>
               <div className="detail-row total"><span>Totalt</span><strong>{formatPrice(total)}</strong></div>
               <div className="detail-row"><span>Deposition</span><strong>{formatPrice(deposit)}</strong></div>
             </div>
@@ -824,7 +809,7 @@ const BookingDetailPage = () => {
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [editingPrice, setEditingPrice] = useState(false)
-  const [priceForm, setPriceForm] = useState({ total_price: '', deposit_amount: '', lodge_list_price: '', reason: '' })
+  const [priceForm, setPriceForm] = useState({ discount: '', deposit_amount: '', reason: '' })
   const [savingPrice, setSavingPrice] = useState(false)
   const [settings, setSettings] = useState({})
   const [allAddons, setAllAddons] = useState([])
@@ -924,30 +909,30 @@ const BookingDetailPage = () => {
   }
 
   const startEditPrice = () => {
+    const base = (booking.lodge_total || 0) + (booking.addons_total || 0)
+    const currentDiscount = Math.max(0, base - (booking.total_price || 0))
     setPriceForm({
-      total_price: booking.total_price ?? 0,
+      discount: currentDiscount || '',
       deposit_amount: booking.deposit_amount ?? 0,
-      lodge_list_price: booking.lodge_list_price ?? '',
       reason: '',
     })
     setEditingPrice(true)
   }
 
   const savePrice = async () => {
-    const total = parseInt(priceForm.total_price, 10)
+    const base = (booking.lodge_total || 0) + (booking.addons_total || 0)
+    const discount = Math.min(Math.max(0, parseInt(priceForm.discount, 10) || 0), base)
     const deposit = parseInt(priceForm.deposit_amount, 10)
-    if (Number.isNaN(total) || total < 0 || Number.isNaN(deposit) || deposit < 0) {
-      alert('Ange giltiga belopp (0 eller högre).')
+    if (Number.isNaN(deposit) || deposit < 0) {
+      alert('Ange ett giltigt depositionsbelopp (0 eller högre).')
       return
     }
+    const total = base - discount
     setSavingPrice(true)
     try {
-      const listRaw = String(priceForm.lodge_list_price ?? '').trim()
-      const lodge_list_price = listRaw === '' ? null : Math.max(0, parseInt(listRaw, 10) || 0)
       await api.updateBookingPrice(id, {
         total_price: total,
         deposit_amount: deposit,
-        lodge_list_price,
         reason: priceForm.reason,
       })
       setEditingPrice(false)
@@ -1142,9 +1127,9 @@ const BookingDetailPage = () => {
     const fmtDate = (d) => d ? new Date(d).toLocaleDateString('sv-SE') : '—'
     const fmtPrice = (p) => new Intl.NumberFormat('sv-SE').format(p || 0) + ' kr'
     const nights = Math.round((new Date(booking.check_out) - new Date(booking.check_in)) / 86400000)
-    const listPrice = booking.lodge_list_price
-    const discount = (listPrice != null && listPrice > (booking.lodge_total || 0)) ? (listPrice - booking.lodge_total) : 0
-    const discountPct = discount > 0 && listPrice > 0 ? Math.round((discount / listPrice) * 100) : 0
+    const baseTotal = (booking.lodge_total || 0) + (booking.addons_total || 0)
+    const discount = baseTotal > (booking.total_price || 0) ? baseTotal - booking.total_price : 0
+    const discountPct = discount > 0 && baseTotal > 0 ? Math.round((discount / baseTotal) * 100) : 0
     const statusLabel = statusOptions.find(o => o.value === booking.status)?.label || booking.status
     const rentalLabel = rentalOptionLabel(booking.rental_option)
     const g = booking.guests || {}
@@ -1207,10 +1192,10 @@ const BookingDetailPage = () => {
   <table>${addonRows}</table>
   <h2>Priser</h2>
   <table>
-    ${discount > 0 ? `<tr><td>Ordinarie boendepris</td><td class="right" style="text-decoration:line-through;color:#8a8578">${fmtPrice(listPrice)}</td></tr>` : ''}
     <tr><td>Boende</td><td class="right">${fmtPrice(booking.lodge_total)}</td></tr>
-    ${discount > 0 ? `<tr><td>Rabatt</td><td class="right" style="color:#568C03">−${fmtPrice(discount)} (${discountPct}%)</td></tr>` : ''}
     <tr><td>Tillval</td><td class="right">${fmtPrice(booking.addons_total)}</td></tr>
+    ${discount > 0 ? `<tr><td>Delsumma</td><td class="right" style="color:#8a8578">${fmtPrice(baseTotal)}</td></tr>` : ''}
+    ${discount > 0 ? `<tr><td>Rabatt</td><td class="right" style="color:#568C03">−${fmtPrice(discount)} (${discountPct}%)</td></tr>` : ''}
     <tr class="total"><td>Totalt</td><td class="right">${fmtPrice(booking.total_price)}</td></tr>
   </table>
   <h2>Betalning</h2>
@@ -1235,10 +1220,10 @@ const BookingDetailPage = () => {
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('sv-SE') : '—'
   const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
   const nightCount = Math.round((new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24))
-  // Rabatt = ordinarie lodge-pris (lodge_list_price) − faktiskt lodge_total, om ett specialpris satts.
-  const listPrice = booking.lodge_list_price
-  const discount = (listPrice != null && listPrice > (booking.lodge_total || 0)) ? (listPrice - booking.lodge_total) : 0
-  const discountPct = discount > 0 && listPrice > 0 ? Math.round((discount / listPrice) * 100) : 0
+  // Rabatt på totalpris = (lodge + tillval) − faktiskt totalpris, om lägre.
+  const baseTotal = (booking.lodge_total || 0) + (booking.addons_total || 0)
+  const discount = baseTotal > (booking.total_price || 0) ? baseTotal - booking.total_price : 0
+  const discountPct = discount > 0 && baseTotal > 0 ? Math.round((discount / baseTotal) * 100) : 0
 
   return (
     <div>
@@ -1374,31 +1359,24 @@ const BookingDetailPage = () => {
             <div style={{ marginTop: '0.75rem' }}>
               <div className="detail-row"><span>Lodge</span><strong>{formatPrice(booking.lodge_total)}</strong></div>
               <div className="detail-row"><span>Tillval</span><strong>{formatPrice(booking.addons_total)}</strong></div>
-              <label className="detail-row total" style={{ alignItems: 'center' }}>
-                <span>Totalt</span>
+              <div className="detail-row"><span>Delsumma</span><strong>{formatPrice(baseTotal)}</strong></div>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Rabatt på totalpris
+                  <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--admin-text-muted)' }}>Ange rabatt i kr · lämna 0 om ingen</span>
+                </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <input type="number" min="0" step="100" value={priceForm.total_price}
-                    onChange={e => setPriceForm(f => ({ ...f, total_price: e.target.value }))}
+                  <input type="number" min="0" step="100" value={priceForm.discount} placeholder="0"
+                    onChange={e => setPriceForm(f => ({ ...f, discount: e.target.value }))}
                     style={{ width: '110px', textAlign: 'right' }} />
                   <span>kr</span>
                 </span>
               </label>
+              <div className="detail-row total"><span>Totalt</span><strong>{formatPrice(Math.max(0, baseTotal - Math.min(Math.max(0, parseInt(priceForm.discount, 10) || 0), baseTotal)))}</strong></div>
               <label className="detail-row" style={{ alignItems: 'center' }}>
                 <span>Deposition</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <input type="number" min="0" step="100" value={priceForm.deposit_amount}
                     onChange={e => setPriceForm(f => ({ ...f, deposit_amount: e.target.value }))}
-                    style={{ width: '110px', textAlign: 'right' }} />
-                  <span>kr</span>
-                </span>
-              </label>
-              <label className="detail-row" style={{ alignItems: 'center' }}>
-                <span>Ordinarie boendepris
-                  <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--admin-text-muted)' }}>Fyll i för att visa rabatt · lämna tomt om ingen</span>
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <input type="number" min="0" step="100" value={priceForm.lodge_list_price} placeholder="—"
-                    onChange={e => setPriceForm(f => ({ ...f, lodge_list_price: e.target.value }))}
                     style={{ width: '110px', textAlign: 'right' }} />
                   <span>kr</span>
                 </span>
@@ -1425,14 +1403,14 @@ const BookingDetailPage = () => {
             </div>
           ) : (
             <>
-              {discount > 0 && (
-                <div className="detail-row"><span>Ordinarie boendepris</span><strong style={{ textDecoration: 'line-through', color: 'var(--admin-text-muted)', fontWeight: 400 }}>{formatPrice(listPrice)}</strong></div>
-              )}
               <div className="detail-row"><span>Lodge</span><strong>{formatPrice(booking.lodge_total)}</strong></div>
-              {discount > 0 && (
-                <div className="detail-row"><span>Rabatt</span><strong style={{ color: 'var(--admin-success, #568C03)' }}>−{formatPrice(discount)} ({discountPct}%)</strong></div>
-              )}
               <div className="detail-row"><span>Tillval</span><strong>{formatPrice(booking.addons_total)}</strong></div>
+              {discount > 0 && (
+                <>
+                  <div className="detail-row"><span>Delsumma</span><strong style={{ fontWeight: 400, color: 'var(--admin-text-muted)' }}>{formatPrice(baseTotal)}</strong></div>
+                  <div className="detail-row"><span>Rabatt</span><strong style={{ color: 'var(--admin-success, #568C03)' }}>−{formatPrice(discount)} ({discountPct}%)</strong></div>
+                </>
+              )}
               <div className="detail-row total"><span>Totalt</span><strong>{formatPrice(booking.total_price)}</strong></div>
               <div className="detail-row"><span>Deposition</span><strong>{formatPrice(booking.deposit_amount)}</strong></div>
             </>

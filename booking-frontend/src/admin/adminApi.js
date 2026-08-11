@@ -130,7 +130,7 @@ export async function updateBookingNotes(id, admin_notes) {
 //
 // Om `reason` anges loggas ändringen som en rad i admin_notes med datum och
 // gamla → nya belopp, så prisjusteringar blir spårbara utan schemaändring.
-export async function updateBookingPrice(id, { total_price, deposit_amount, lodge_list_price, reason }) {
+export async function updateBookingPrice(id, { total_price, deposit_amount, reason }) {
   const { data: current, error: fetchError } = await supabase
     .from('bookings')
     .select('total_price, deposit_amount, admin_notes')
@@ -141,8 +141,6 @@ export async function updateBookingPrice(id, { total_price, deposit_amount, lodg
   const update = {}
   if (total_price != null) update.total_price = total_price
   if (deposit_amount != null) update.deposit_amount = deposit_amount
-  // undefined = rör inte fältet; null = nolla rabatten; tal = sätt ordinarie pris
-  if (lodge_list_price !== undefined) update.lodge_list_price = lodge_list_price
 
   if (reason && reason.trim()) {
     const stamp = new Date().toLocaleDateString('sv-SE')
@@ -406,7 +404,6 @@ export async function createBooking({ guest, booking, addons, pricing }) {
       status: booking.status || 'confirmed',
       rental_option: booking.rental_option || 'full_lodge',
       lodge_total: num(pricing.lodge_total),
-      lodge_list_price: pricing.lodge_list_price != null ? num(pricing.lodge_list_price) : null,
       addons_total: num(pricing.addons_total),
       total_price: num(pricing.total_price),
       deposit_amount: num(pricing.deposit_amount) || 5000,

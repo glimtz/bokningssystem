@@ -444,7 +444,7 @@ const translations = {
 };
 
 // Boendealternativ (id:n) — måste matcha bookings.rental_option i databasen.
-const RENTAL_OPTIONS = ['full_lodge', 'lillstuga'];
+const RENTAL_OPTIONS = ['lillstuga', 'full_lodge'];
 
 // Bygg konfiguration för de två boendealternativen utifrån settings.
 // Båda använder samma pris/person; de skiljer sig i golvpris och max antal gäster.

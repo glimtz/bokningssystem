@@ -10,8 +10,10 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
-- **Mail: CC + villkorlig deposition (2026-08-07)** — alla gästmail (received/confirmed/declined) skickas
-  nu med **CC till info@flightmode.se** (`sendEmail(..., cc)` i Edge-funktionen). Texten om
+- **Mail: CC + villkorlig deposition (2026-08-07)** — **bekräftelsemailet** (`booking_confirmed`, med
+  betalningsinstruktioner) skickas nu med **CC till info@flightmode.se** (`sendEmail(..., cc)`). Förfrågnings-
+  mailet (`booking_received`) är oförändrat — info@ får som tidigare sitt separata admin-notismail, ingen CC.
+  Nekande-mail skickas utan CC. Texten om
   säkerhetsdeposition (raden i betalningsrutan + villkorspunkten) visas bara när bokningen inkluderar
   båt-tillvalet (`slug = 'boat'`) via `hasBoatAddon()`. **Kräver manuell deploy av Edge-funktionen**
   (`npx supabase functions deploy send-booking-emails`). Avsändaren är fortfarande `leif.gyllenberg@glimtz.se`

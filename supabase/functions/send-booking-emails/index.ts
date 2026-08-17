@@ -689,7 +689,7 @@ async function handleBookingReceived(supabase: any, record: any) {
   const lang = pickLang(data.guest_language);
   const t = translations.booking_received[lang];
 
-  await sendEmail(data.guest_email, t.subject, buildReceivedGuestEmailHtml(data), ADMIN_EMAIL);
+  await sendEmail(data.guest_email, t.subject, buildReceivedGuestEmailHtml(data));
   await sendEmail(ADMIN_EMAIL, `Ny bokning: ${data.reference} — ${data.guest_name}`, buildReceivedAdminEmailHtml(data));
 
   await supabase.from("email_log").insert([
@@ -713,7 +713,10 @@ async function handleStatusEmail(supabase: any, eventType: "booking_confirmed" |
     ? buildConfirmedGuestEmailHtml(data)
     : buildDeclinedGuestEmailHtml(data);
 
-  await sendEmail(data.guest_email, t.subject, html, ADMIN_EMAIL);
+  // CC till info@flightmode.se enbart på bekräftelsemailet (godkännande med
+  // betalningsinstruktioner). Nekande-mail skickas utan kopia.
+  const cc = eventType === "booking_confirmed" ? ADMIN_EMAIL : undefined;
+  await sendEmail(data.guest_email, t.subject, html, cc);
 
   await supabase.from("email_log").insert([
     { booking_id: bookingId, guest_id: booking.guest_id, email_type: eventType, recipient: data.guest_email, subject: t.subject, status: "sent" },

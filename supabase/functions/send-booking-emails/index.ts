@@ -1,6 +1,6 @@
 // supabase/functions/send-booking-emails/index.ts
 //
-// Skickar mail via Loopia SMTP för olika bokningshändelser.
+// Skickar mail via Resend API för olika bokningshändelser.
 //
 // Triggas på två sätt:
 //   1. Database Webhook på bookings INSERT  → skickar booking_received (gäst + admin)
@@ -12,12 +12,11 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
-const SMTP_HOST = Deno.env.get("SMTP_HOST") || "mailcluster.loopia.se";
-const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") || "465");
-const SMTP_USER = Deno.env.get("SMTP_USER")!;
-const SMTP_PASS = Deno.env.get("SMTP_PASS")!;
+// Utgående mail skickas via Resends API (https://resend.com).
+// Domänen flightmode.se är verifierad i Resend (DKIM/SPF i Microsoft-DNS),
+// så mailen autentiseras korrekt som info@flightmode.se.
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -28,8 +27,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // till true och deploya om funktionen för att slå på mailen igen.
 const EMAILS_ENABLED = true;
 
-const FROM_EMAIL = "leif.gyllenberg@glimtz.se";
+const FROM_EMAIL = "info@flightmode.se";
 const FROM_NAME = "Vilhelmina Lodge";
+const REPLY_TO = "info@flightmode.se";
 const ADMIN_EMAIL = "info@flightmode.se";
 const PUBLIC_SITE = "https://vilhelmina-lodge.vercel.app";
 const CONTRACT_URL = `${PUBLIC_SITE}/bokningsavtal.pdf`;
@@ -604,35 +604,34 @@ function buildDeclinedGuestEmailHtml(data: BookingData): string {
 }
 
 // ============================================================
-// SMTP
+// EMAIL — Resend API
 // ============================================================
 
 async function sendEmail(to: string, subject: string, html: string, cc?: string) {
-  // Strippa avslutande blanksteg/tabbar på varje rad. Annars quoted-printable-
-  // kodas de till "=20" som kan läcka ut som synlig text i mailet (t.ex. tomma
-  // rader med indrag mellan HTML-block).
+  // Strippa avslutande blanksteg/tabbar på varje rad (kosmetiskt, som tidigare).
   const cleanHtml = html.replace(/[ \t]+(\r?\n)/g, "$1");
 
-  const client = new SMTPClient({
-    connection: {
-      hostname: SMTP_HOST,
-      port: SMTP_PORT,
-      tls: true,
-      auth: { username: SMTP_USER, password: SMTP_PASS },
+  const body: Record<string, unknown> = {
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [to],
+    reply_to: REPLY_TO,
+    subject,
+    html: cleanHtml,
+  };
+  if (cc) body.cc = [cc];
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify(body),
   });
-  try {
-    const sendOptions: Record<string, unknown> = {
-      from: `${FROM_NAME} <${FROM_EMAIL}>`,
-      to,
-      subject,
-      content: "auto",
-      html: cleanHtml,
-    };
-    if (cc) sendOptions.cc = cc;
-    await client.send(sendOptions as any);
-  } finally {
-    await client.close();
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Resend API error ${res.status}: ${errText}`);
   }
 }
 

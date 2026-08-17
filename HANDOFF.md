@@ -10,6 +10,10 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Mail flyttat till Resend (2026-08-07)** — Edge-funktionen skickar nu via **Resends API** i stället för
+  Loopia SMTP. Avsändare: **Vilhelmina Lodge <info@flightmode.se>**, reply-to info@flightmode.se. Kräver:
+  (1) domänen flightmode.se verifierad i Resend (DKIM/SPF-poster i Microsoft-DNS), (2) `RESEND_API_KEY` som
+  Supabase-secret, (3) redeploy. Loopia-SMTP-secrets behövs inte längre. Löser även FROM-adress + SPF/DKIM-punkterna.
 - **Mail: CC + villkorlig deposition (2026-08-07)** — **bekräftelsemailet** (`booking_confirmed`, med
   betalningsinstruktioner) skickas nu med **CC till info@flightmode.se** (`sendEmail(..., cc)`). Förfrågnings-
   mailet (`booking_received`) är oförändrat — info@ får som tidigare sitt separata admin-notismail, ingen CC.
@@ -429,11 +433,11 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 
 - [ ] **Migrationsfilen 001 är inte synkad** — RLS-fixar och `get_booked_dates`-RPC gjordes direkt i SQL Editor. (migration 002 och 003 är synkade som filer)
 - [ ] **Två migrationer med nummer 003** — `003_fix_reference_generator.sql` och `003_add_hunting_guide.sql`. Byt gärna det senare till 004
-- [ ] **SMTP-lösenord bör bytas** — exponerades i chatt-session
-- [ ] **FROM-adress:** Mail skickas från `leif.gyllenberg@glimtz.se` istället för `info@flightmode.se`. Lösning: separat SMTP för info@flightmode.se i Loopia
-- [ ] **SPF/DKIM saknas för flightmode.se** — confirmation-mail hamnar i skräppost. Behöver DNS-konfiguration
+- [x] **~~SMTP-lösenord bör bytas~~** — ✅ Inaktuellt 2026-08-17: mail går inte längre via Loopia SMTP (bytt till Resend)
+- [x] **~~FROM-adress glimtz.se~~** — ✅ Löst 2026-08-17: mail skickas nu som `info@flightmode.se` via Resend (reply-to info@)
+- [x] **~~SPF/DKIM saknas för flightmode.se~~** — ✅ Löst 2026-08-17: Resends DKIM (`resend._domainkey`) + SPF (`send`-subdomän) inlagda i Loopias DNS; domänen verifierad i Resend
 - [ ] **Inga betalningar (automatik)** — Stripe/Swish ej integrerat. Idag manuellt via UI
-- [ ] **Resend-konto skapat** — API-nyckel finns men används inte (vi kör Loopia SMTP). Kan avaktiveras
+- [x] **~~Resend-konto oanvänt~~** — ✅ 2026-08-17: Resend är nu den aktiva mejltjänsten (ersatte Loopia SMTP)
 - [ ] **Edge Function-deploy är manuell** — kräver `npx supabase functions deploy ...`
 - [ ] **Avtals-PDF har platshållare** — `/bokningsavtal.pdf` är generisk mall. Fas 2: generera ifylld PDF per bokning
 - [ ] **Mail visar inte valt boende** — bekräftelse-/förfrågningsmailen (`send-booking-emails`) nämner ännu inte om bokningen avser hela lodgen eller endast Lillstugan. Priset i mailet stämmer (lodge_total speglar rätt golv), men själva boendenamnet saknas. Kräver Edge Function-redeploy
@@ -459,8 +463,8 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 10. **Fas 2 mailtyper:** `payment_confirmed`, `cancellation`
 11. **Fas 3 mailtyper:** `reminder`, `welcome` — kräver schedulerad körning
 12. **Stripe/Swish-integration** — automatisk bokningsavgift/slutbetalning
-13. **SPF/DKIM för flightmode.se** — så mail inte hamnar i skräppost
-14. **Byta FROM-adress** — till info@flightmode.se med eget SMTP-konto
+13. **~~SPF/DKIM för flightmode.se~~** — ✅ Klar 2026-08-17 (via Resend, DNS hos Loopia)
+14. **~~Byta FROM-adress~~** — ✅ Klar 2026-08-17: info@flightmode.se via Resend
 15. **Synka migrationsfil 001** — RLS-fixar och `get_booked_dates`-RPC
 16. **Ifylld avtals-PDF** — generera per bokning i Edge Function
 17. **Byt namn på dubbel-003-migrationen** till 004

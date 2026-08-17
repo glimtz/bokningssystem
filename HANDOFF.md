@@ -10,6 +10,12 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Mail: CC + villkorlig deposition (2026-08-07)** — alla gästmail (received/confirmed/declined) skickas
+  nu med **CC till info@flightmode.se** (`sendEmail(..., cc)` i Edge-funktionen). Texten om
+  säkerhetsdeposition (raden i betalningsrutan + villkorspunkten) visas bara när bokningen inkluderar
+  båt-tillvalet (`slug = 'boat'`) via `hasBoatAddon()`. **Kräver manuell deploy av Edge-funktionen**
+  (`npx supabase functions deploy send-booking-emails`). Avsändaren är fortfarande `leif.gyllenberg@glimtz.se`
+  — byte till info@flightmode.se är nästa steg.
 - **Org.nr / personnr på gäst (2026-08-07)** — nytt frivilligt fält `guests.id_number`
   (**migration `006_add_guest_id_number.sql`**) för fakturering. Fylls i från admin i "Ny bokning" och i
   gästredigeringen, visas i gästkortet och på utskriften. Känslig PII — hanteras enligt GDPR/RLS som övriga

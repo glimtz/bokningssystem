@@ -65,7 +65,7 @@ interface BookingData {
   guest_name: string;
   guest_email: string;
   guest_language: string;
-  addons: Array<{ name: string; quantity: number; total_price: number; selected_dates: string[] | null }>;
+  addons: Array<{ slug: string | null; name: string; quantity: number; total_price: number; selected_dates: string[] | null }>;
 }
 
 type EventType = "booking_received" | "booking_confirmed" | "booking_declined";
@@ -372,6 +372,11 @@ function pickLang(lang: string): Lang {
   return (["en", "sv", "de", "fr"].includes(lang) ? lang : "en") as Lang;
 }
 
+// Säkerhetsdeposition tas bara ut (och nämns i mailen) när båt hyrs.
+function hasBoatAddon(data: BookingData): boolean {
+  return data.addons.some((a) => a.slug === "boat");
+}
+
 // ============================================================
 // EMAIL TEMPLATES — booking_received (oförändrad design)
 // ============================================================
@@ -405,7 +410,7 @@ function buildReceivedGuestEmailHtml(data: BookingData): string {
       <tr><td style="padding:6px 12px;border-bottom:1px solid #eee;color:#555">${t.lodgeLabel}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${formatSEK(data.lodge_total)}</td></tr>
       ${addonsRows}
       <tr><td style="padding:10px 12px;font-weight:700;font-size:16px;color:#1a3a2a;border-top:2px solid #1a3a2a">${t.totalLabel}</td><td style="padding:10px 12px;text-align:right;font-weight:700;font-size:16px;color:#1a3a2a;border-top:2px solid #1a3a2a">${formatSEK(data.total_price)}</td></tr>
-      <tr><td style="padding:6px 12px;color:#888">${t.depositLabel}</td><td style="padding:6px 12px;text-align:right;color:#888">${formatSEK(data.deposit_amount)}</td></tr>
+      ${hasBoatAddon(data) ? `<tr><td style="padding:6px 12px;color:#888">${t.depositLabel}</td><td style="padding:6px 12px;text-align:right;color:#888">${formatSEK(data.deposit_amount)}</td></tr>` : ""}
     </table>
     ${data.message ? `<div style="background:#f8faf9;border-radius:8px;padding:16px;margin-bottom:24px"><p style="margin:0 0 4px;font-weight:600;color:#1a3a2a;font-size:13px">${t.messageLabel}</p><p style="margin:0;color:#555;font-size:14px;line-height:1.5">${data.message}</p></div>` : ""}
     <h3 style="color:#1a3a2a;margin:0 0 12px;font-size:16px">${t.nextSteps}</h3>
@@ -486,6 +491,7 @@ function buildConfirmedGuestEmailHtml(data: BookingData): string {
   const bookingFee = Math.round(data.total_price * 0.5);
   const finalPayment = data.total_price - bookingFee;
   const addonsRows = buildAddonRows(data.addons, lang);
+  const boat = hasBoatAddon(data);
 
   return `<!DOCTYPE html>
 <html lang="${lang}">
@@ -521,7 +527,7 @@ function buildConfirmedGuestEmailHtml(data: BookingData): string {
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="padding:6px 0;color:#555;font-weight:600;line-height:20px">${t.bookingFeeLabel}</td><td style="padding:6px 0;text-align:right;font-weight:700;font-size:18px;line-height:22px;color:#c45a20">${formatSEK(bookingFee)}</td></tr>
         <tr><td style="padding:6px 0;color:#555;font-size:13px;line-height:18px">${t.finalPaymentLabel}</td><td style="padding:6px 0;text-align:right;color:#888;font-size:13px;line-height:18px">${formatSEK(finalPayment)}</td></tr>
-        <tr><td style="padding:6px 0;color:#555;font-size:13px;line-height:18px">${t.depositLabel}</td><td style="padding:6px 0;text-align:right;color:#888;font-size:13px;line-height:18px">${formatSEK(data.deposit_amount)}</td></tr>
+        ${boat ? `<tr><td style="padding:6px 0;color:#555;font-size:13px;line-height:18px">${t.depositLabel}</td><td style="padding:6px 0;text-align:right;color:#888;font-size:13px;line-height:18px">${formatSEK(data.deposit_amount)}</td></tr>` : ""}
       </table>
       <div style="margin-top:12px;color:#555;font-size:14px;line-height:20px">${t.paymentInstructions}</div>
     </div>
@@ -537,7 +543,7 @@ function buildConfirmedGuestEmailHtml(data: BookingData): string {
     <div style="color:#1a3a2a;font-size:16px;font-weight:600;line-height:22px;margin-bottom:8px">${t.termsHeading}</div>
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term1}</div>
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term2}</div>
-    <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term3}</div>
+    ${boat ? `<div style="color:#555;font-size:14px;line-height:20px;margin-bottom:8px">• ${t.term3}</div>` : ""}
     <div style="color:#555;font-size:14px;line-height:20px;margin-bottom:24px">• ${t.term4}</div>
 
     <!-- Avtalslänk borttagen — bokningsavtalet hanteras manuellt tills vidare. -->
@@ -601,7 +607,7 @@ function buildDeclinedGuestEmailHtml(data: BookingData): string {
 // SMTP
 // ============================================================
 
-async function sendEmail(to: string, subject: string, html: string) {
+async function sendEmail(to: string, subject: string, html: string, cc?: string) {
   // Strippa avslutande blanksteg/tabbar på varje rad. Annars quoted-printable-
   // kodas de till "=20" som kan läcka ut som synlig text i mailet (t.ex. tomma
   // rader med indrag mellan HTML-block).
@@ -616,13 +622,15 @@ async function sendEmail(to: string, subject: string, html: string) {
     },
   });
   try {
-    await client.send({
+    const sendOptions: Record<string, unknown> = {
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to,
       subject,
       content: "auto",
       html: cleanHtml,
-    });
+    };
+    if (cc) sendOptions.cc = cc;
+    await client.send(sendOptions as any);
   } finally {
     await client.close();
   }
@@ -648,6 +656,7 @@ async function fetchBookingData(supabase: any, record: any): Promise<BookingData
 
   const lang = guest.language || "en";
   const addonsList = (bookingAddons || []).map((ba: any) => ({
+    slug: ba.addons?.slug || null,
     name: ba.addons?.translations?.[lang]?.name || ba.addons?.translations?.en?.name || ba.addons?.slug || "Add-on",
     quantity: ba.quantity,
     total_price: ba.total_price,
@@ -680,7 +689,7 @@ async function handleBookingReceived(supabase: any, record: any) {
   const lang = pickLang(data.guest_language);
   const t = translations.booking_received[lang];
 
-  await sendEmail(data.guest_email, t.subject, buildReceivedGuestEmailHtml(data));
+  await sendEmail(data.guest_email, t.subject, buildReceivedGuestEmailHtml(data), ADMIN_EMAIL);
   await sendEmail(ADMIN_EMAIL, `Ny bokning: ${data.reference} — ${data.guest_name}`, buildReceivedAdminEmailHtml(data));
 
   await supabase.from("email_log").insert([
@@ -704,7 +713,7 @@ async function handleStatusEmail(supabase: any, eventType: "booking_confirmed" |
     ? buildConfirmedGuestEmailHtml(data)
     : buildDeclinedGuestEmailHtml(data);
 
-  await sendEmail(data.guest_email, t.subject, html);
+  await sendEmail(data.guest_email, t.subject, html, ADMIN_EMAIL);
 
   await supabase.from("email_log").insert([
     { booking_id: bookingId, guest_id: booking.guest_id, email_type: eventType, recipient: data.guest_email, subject: t.subject, status: "sent" },

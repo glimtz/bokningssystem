@@ -21,6 +21,11 @@ Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
   `BookingApp.jsx` (kalender + prissättning), `admin/AdminApp.jsx` (`SeasonsPage`). Ingen ändring i `adminApi.js`
   (befintliga `getSeasons`/`updateSeason` räckte). RLS: anon får redan SELECT:a aktiva säsonger, `prices` är
   bara en ny kolumn. Den gamla `pricing_periods`-tabellen/UI:t används INTE av publika flödet (kvar som legacy).
+  Admins "Ny bokning" (`NewBookingModal`) är också säsongsmedveten (2026-09-01): den använder säsongens priser
+  utifrån incheckningsdatumet (via `api.seasonForDate`/`seasonSettings`/`seasonAddonPrice`), med globala som
+  fallback. De globala sektionerna på `/admin/seasons` är omdöpta till **"Standardpriser"** (fallback). En
+  säsong kan även tas bort (`deleteSeason`). Kvar som mindre punkt: detaljvyns omräkning vid ändrat datum/gäster
+  (`BookingDetailPage`) använder fortfarande globala priser.
 - **Mail flyttat till Resend (2026-08-07)** — Edge-funktionen skickar nu via **Resends API** i stället för
   Loopia SMTP. Avsändare: **Vilhelmina Lodge <info@flightmode.se>**, reply-to info@flightmode.se. Kräver:
   (1) domänen flightmode.se verifierad i Resend (DKIM/SPF-poster i Microsoft-DNS), (2) `RESEND_API_KEY` som

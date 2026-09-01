@@ -284,6 +284,37 @@ export function addonRowTotal(addon, { quantity, numGuests }) {
   return price * (quantity || 1) // per_day (default)
 }
 
+// ── Säsongspriser (admin) ────────────────────────────────
+// Säsongen vars [start_date, end_date] innehåller datumet (admin: alla säsonger, aktiva som ej).
+export function seasonForDate(seasons, dateStr) {
+  if (!seasons || !seasons.length || !dateStr) return null
+  const d = new Date(String(dateStr).substring(0, 10) + 'T00:00:00')
+  return seasons.find(s => {
+    const start = new Date(String(s.start_date).substring(0, 10) + 'T00:00:00')
+    const end = new Date(String(s.end_date).substring(0, 10) + 'T00:00:00')
+    return d >= start && d <= end
+  }) || null
+}
+
+// Slå ihop säsongens priser över globala settings.
+export function seasonSettings(base, season) {
+  const p = season && season.prices
+  if (!p) return base
+  const merged = { ...base }
+  for (const k of ['price_per_person_per_night', 'min_price_per_night', 'lillstuga_min_price_per_night', 'lillstuga_cleaning_price', 'deposit_amount']) {
+    if (p[k] != null) merged[k] = p[k]
+  }
+  return merged
+}
+
+// Tillvalspris för en säsong (per slug), annars addonens globala pris.
+export function seasonAddonPrice(season, addon) {
+  const ap = season && season.prices && season.prices.addons
+  const slug = addon.slug || addon.id
+  if (ap && ap[slug] != null) return ap[slug]
+  return addon.unit_price != null ? addon.unit_price : addon.price
+}
+
 // Uppdatera gästuppgifter (guests-raden kopplad till bokningen).
 export async function updateGuest(guestId, fields) {
   const update = {}

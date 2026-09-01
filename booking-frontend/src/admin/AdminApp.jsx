@@ -442,6 +442,7 @@ const hasDateConflict = (booking, allBookings) => {
 const NewBookingModal = ({ onClose, onCreated }) => {
   const [settings, setSettings] = useState({})
   const [allAddons, setAllAddons] = useState([])
+  const [seasons, setSeasons] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -457,9 +458,10 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   useEffect(() => {
     (async () => {
       try {
-        const [s, a] = await Promise.all([api.getSettings(), api.getAddons()])
+        const [s, a, se] = await Promise.all([api.getSettings(), api.getAddons(), api.getSeasons()])
         setSettings(s || {})
         setAllAddons(a || [])
+        setSeasons(se || [])
       } catch (err) {
         console.error('Failed to load modal data:', err)
       } finally { setLoading(false) }
@@ -468,13 +470,16 @@ const NewBookingModal = ({ onClose, onCreated }) => {
 
   const nights = api.nightsBetween(form.check_in, form.check_out)
   const numGuests = parseInt(form.num_guests, 10) || 1
-  const perNight = api.lodgePricePerNight(numGuests, settings, form.rental_option)
+  // Priser hämtas från säsongen som innehåller incheckningsdatumet; globala som fallback.
+  const season = api.seasonForDate(seasons, form.check_in)
+  const effSettings = api.seasonSettings(settings, season)
+  const perNight = api.lodgePricePerNight(numGuests, effSettings, form.rental_option)
   const lodgeTotal = nights > 0 ? perNight * nights : 0
-  const deposit = parseInt(settings.deposit_amount) || 5000
+  const deposit = parseInt(effSettings.deposit_amount) || 5000
   const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
-  // Städning kostar mindre om man bara hyr Lillstugan.
-  const cleaningPrice = parseInt(settings.lillstuga_cleaning_price) || 700
-  const effPrice = (a) => (form.rental_option === 'lillstuga' && (a.slug === 'cleaning' || a.id === 'cleaning')) ? cleaningPrice : a.price
+  // Städning kostar mindre om man bara hyr Lillstugan (säsongens pris om satt).
+  const cleaningPrice = parseInt(effSettings.lillstuga_cleaning_price) || 700
+  const effPrice = (a) => (form.rental_option === 'lillstuga' && (a.slug === 'cleaning' || a.id === 'cleaning')) ? cleaningPrice : api.seasonAddonPrice(season, a)
 
   const stayDates = () => {
     if (!form.check_in || !form.check_out || nights <= 0) return []

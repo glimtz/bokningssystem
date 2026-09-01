@@ -465,6 +465,15 @@ export async function updateSeason(id, updates) {
   return data
 }
 
+export async function deleteSeason(id) {
+  // Ta bort ev. prisperioder först (om FK inte är ON DELETE CASCADE), sedan säsongen.
+  // Bokningar refererar inte seasons, så befintliga bokningar påverkas inte.
+  const { error: ppError } = await supabase.from('pricing_periods').delete().eq('season_id', id)
+  if (ppError) throw ppError
+  const { error } = await supabase.from('seasons').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function createPricingPeriod(period) {
   const { data, error } = await supabase
     .from('pricing_periods')

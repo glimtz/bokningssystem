@@ -1957,6 +1957,17 @@ const SeasonsPage = () => {
     }
   }
 
+  const handleDeleteSeason = async (season) => {
+    if (!confirm(`Ta bort säsongen "${season.name || season.year}"?\n\nSäsongen och dess prisperioder tas bort permanent. Befintliga bokningar påverkas inte.`)) return
+    try {
+      await api.deleteSeason(season.id)
+      if (editingSeason?.id === season.id) setEditingSeason(null)
+      loadData()
+    } catch (err) {
+      alert('Kunde inte ta bort säsong: ' + err.message)
+    }
+  }
+
   const handleCreatePeriod = async (seasonId) => {
     if (!newPeriod.name || !newPeriod.start_date || !newPeriod.end_date || !newPeriod.price_per_night) return
     try {
@@ -2088,6 +2099,12 @@ const SeasonsPage = () => {
                 onClick={() => handleToggleActive(season)}
               >
                 {season.is_active ? 'Inaktivera' : 'Aktivera'}
+              </button>
+              <button
+                className="admin-btn admin-btn-decline admin-btn-xs"
+                onClick={() => handleDeleteSeason(season)}
+              >
+                Ta bort
               </button>
             </div>
           </div>

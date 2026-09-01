@@ -2232,10 +2232,14 @@ const SeasonsPage = () => {
         <div className="admin-empty">Inga säsonger skapade ännu. Skapa din första säsong ovan.</div>
       )}
 
-      {/* ---- LODGE BASE PRICING ---- */}
+      {/* ---- STANDARDPRISER (globala fallback) ---- */}
       <div style={{ marginTop: '2.5rem' }}>
+        <p className="admin-empty-sm" style={{ marginBottom: '0.75rem' }}>
+          Standardpriserna nedan används som fallback när en säsong saknar egna priser, samt för bokningar du
+          skapar själv i admin. Gästernas pris styrs av <strong>säsongspriserna</strong> ovan (Redigera på säsongskortet).
+        </p>
         <div className="detail-header">
-          <h1 className="admin-page-title">Lodge-pris</h1>
+          <h1 className="admin-page-title">Standardpriser – lodge</h1>
           {!editingSettings ? (
             <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setEditingSettings({
               price_per_person_per_night: settings.price_per_person_per_night || 950,
@@ -2286,7 +2290,7 @@ const SeasonsPage = () => {
 
       {/* ---- ADDONS PRICING ---- */}
       <div style={{ marginTop: '2.5rem' }}>
-        <h1 className="admin-page-title">Tillval</h1>
+        <h1 className="admin-page-title">Standardpriser – tillval</h1>
 
         <div className="bookings-table-wrapper">
           <table className="admin-table">

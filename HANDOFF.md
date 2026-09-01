@@ -2,11 +2,32 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-08-07
+> Senast uppdaterad: 2026-09-01
 
 ---
 
-## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-08-07)
+## ⚡ Snabbstart på ny dator (eller vid datorbyte)
+
+Repot delas mellan flera datorer (basecampone, lenas-lenovo). **Kör `git pull` FÖRST** så du inte
+kommer i otakt. Kort checklista (fullständig setup i avsnitt 5):
+
+1. **Hämta koden:**
+   - Första gången: `git clone https://github.com/glimtz/bokningssystem.git Bokningssystem`
+   - Finns repot redan: `cd Bokningssystem && git pull`
+2. **Installera:** `cd Bokningssystem/booking-frontend && npm install`
+3. **Skapa `.env`:** `booking-frontend/.env` ligger INTE i git — kopiera från annan dator eller återskapa
+   (Supabase-nycklar, se avsnitt 5.3).
+4. **Kör lokalt:** `npm run dev` → publikt: http://localhost:5173 · admin: http://localhost:5173/admin
+5. **Publicera:** committa + `git push origin main` → **Vercel auto-deployar**. Migrationer (`supabase/migrations/*.sql`)
+   körs manuellt i **Supabase SQL Editor**. Mailfunktionen deployas manuellt: `npx supabase functions deploy send-booking-emails --project-ref mqarsrzwwttgccwiwkir`.
+6. **Klar för dagen:** committa + pusha allt (inkl. denna HANDOFF) så nästa dator/session startar uppdaterad.
+
+> Kontext följer med automatiskt i Cowork-projektet "Flightmode Bokningssystem" (instruktioner + minne).
+> Koden följer med via GitHub. Denna HANDOFF (i repot) är "var-var-vi"-filen — håll den uppdaterad.
+
+---
+
+## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-09-01)
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 

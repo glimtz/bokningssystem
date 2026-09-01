@@ -828,19 +828,22 @@ const BookingDetailPage = () => {
   const [savingDetails, setSavingDetails] = useState(false)
   const [editingAddons, setEditingAddons] = useState(false)
   const [addAddonId, setAddAddonId] = useState('')
+  const [seasons, setSeasons] = useState([])
 
   const loadBooking = useCallback(async () => {
     try {
-      const [data, all, settingsData, addonsData] = await Promise.all([
+      const [data, all, settingsData, addonsData, seasonsData] = await Promise.all([
         api.getBookingById(id),
         api.getBookings({ status: 'all', limit: 500 }),
         api.getSettings(),
         api.getAddons(),
+        api.getSeasons(),
       ])
       setBooking(data)
       setAllBookings(all.data)
       setSettings(settingsData || {})
       setAllAddons(addonsData || [])
+      setSeasons(seasonsData || [])
       setNotes(data.admin_notes || '')
     } catch (err) {
       console.error('Failed to load booking:', err)
@@ -1009,7 +1012,9 @@ const BookingDetailPage = () => {
     let pricing = null
     if (changed) {
       const nights = api.nightsBetween(check_in, check_out)
-      const perNight = api.lodgePricePerNight(num_guests, settings, rental_option)
+      // Räkna om utifrån säsongen för det (nya) incheckningsdatumet; globala som fallback.
+      const recalcSeason = api.seasonForDate(seasons, check_in)
+      const perNight = api.lodgePricePerNight(num_guests, api.seasonSettings(settings, recalcSeason), rental_option)
       const newLodge = perNight * nights
       const addonsTotal = booking.addons_total || 0
       const recalc = window.confirm(
@@ -1054,8 +1059,9 @@ const BookingDetailPage = () => {
     if (addon.price_type === 'per_day') quantity = nights || 1
     else if (addon.price_type === 'per_person') quantity = numGuests
     const isLillstuga = (booking.rental_option || 'full_lodge') === 'lillstuga'
-    const cleaningPrice = parseInt(settings.lillstuga_cleaning_price) || 700
-    const unit_price = ((addon.slug === 'cleaning' || addon.id === 'cleaning') && isLillstuga) ? cleaningPrice : addon.price
+    const season = api.seasonForDate(seasons, booking.check_in)
+    const cleaningPrice = parseInt(api.seasonSettings(settings, season).lillstuga_cleaning_price) || 700
+    const unit_price = ((addon.slug === 'cleaning' || addon.id === 'cleaning') && isLillstuga) ? cleaningPrice : api.seasonAddonPrice(season, addon)
     const total_price = api.addonRowTotal({ ...addon, price: unit_price }, { quantity, numGuests })
     try {
       await api.addBookingAddon(id, { addon_id: addon.id, quantity, unit_price, total_price, selected_dates: null })
@@ -1510,7 +1516,8 @@ const BookingDetailPage = () => {
                   .map(a => {
                     const name = a.translations?.sv?.name || a.translations?.en?.name || a.slug
                     const isLillstuga = (booking.rental_option || 'full_lodge') === 'lillstuga'
-                    const p = (a.slug === 'cleaning' && isLillstuga) ? (parseInt(settings.lillstuga_cleaning_price) || 700) : a.price
+                    const season = api.seasonForDate(seasons, booking.check_in)
+                    const p = (a.slug === 'cleaning' && isLillstuga) ? (parseInt(api.seasonSettings(settings, season).lillstuga_cleaning_price) || 700) : api.seasonAddonPrice(season, a)
                     return <option key={a.id} value={a.id}>{name} ({formatPrice(p)})</option>
                   })}
               </select>

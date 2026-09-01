@@ -10,6 +10,17 @@
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Säsongsprissättning (2026-09-01)** — det publika flödet drivs nu av `seasons`-tabellen i stället för
+  hårdkodade maj–sep-datum. En dag är bokningsbar om den ligger inom NÅGON aktiv säsongs [start_date, end_date];
+  gästen kan fritt boka datum i vilken aktiv säsong som helst. Priser (lodge per person, golvpriser för
+  hela lodgen resp. Lillstugan, deposition, städning för Lillstugan och alla tillval) sätts **per säsong** i en
+  ny JSONB-kolumn `seasons.prices` (**migration `007_season_prices.sql`**, backfillad från globala värden).
+  Priset för en vistelse hämtas från säsongen som innehåller incheckningsdatumet; globala `settings`/`addons`
+  används som fallback om en säsong saknar priser. Admin (`/admin/seasons`) kan redigera säsongens start/slut,
+  aktivera kommande säsonger och sätta alla priser per säsong. Berörda filer: `api.js` (`getActiveSeasons`),
+  `BookingApp.jsx` (kalender + prissättning), `admin/AdminApp.jsx` (`SeasonsPage`). Ingen ändring i `adminApi.js`
+  (befintliga `getSeasons`/`updateSeason` räckte). RLS: anon får redan SELECT:a aktiva säsonger, `prices` är
+  bara en ny kolumn. Den gamla `pricing_periods`-tabellen/UI:t används INTE av publika flödet (kvar som legacy).
 - **Mail flyttat till Resend (2026-08-07)** — Edge-funktionen skickar nu via **Resends API** i stället för
   Loopia SMTP. Avsändare: **Vilhelmina Lodge <info@flightmode.se>**, reply-to info@flightmode.se. Kräver:
   (1) domänen flightmode.se verifierad i Resend (DKIM/SPF-poster i Microsoft-DNS), (2) `RESEND_API_KEY` som
@@ -181,7 +192,8 @@ Bokningssystem/
     │   ├── 003_add_hunting_guide.sql         # tillval guide_hunting (jaktguide)
     │   ├── 004_add_rental_option.sql         # boende Lillstugan (bookings.rental_option + settings)
     │   ├── 005_add_lodge_list_price.sql      # (oanvänd numera — rabatt räknas ut, ej lagrad)
-    │   └── 006_add_guest_id_number.sql       # NYTT org.nr/personnr på gäst (guests.id_number)
+    │   ├── 006_add_guest_id_number.sql       # org.nr/personnr på gäst (guests.id_number)
+    │   └── 007_season_prices.sql             # NYTT pris per säsong (seasons.prices JSONB)
     ├── scripts/
     │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/

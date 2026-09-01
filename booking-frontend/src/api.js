@@ -5,19 +5,18 @@ import { supabase } from './supabaseClient'
 // ============================================================
 
 /**
- * Hämta aktiv säsong med prisperioder
+ * Hämta ALLA aktiva säsonger (med priser) för det publika flödet.
+ * Returnerar en array — en gäst kan boka datum i vilken aktiv säsong som helst.
  */
-export async function getActiveSeason() {
+export async function getActiveSeasons() {
   const { data, error } = await supabase
     .from('seasons')
-    .select('*, pricing_periods(*)')
+    .select('*')
     .eq('is_active', true)
     .order('start_date', { ascending: true })
-    .limit(1)
-    .single()
 
   if (error) throw error
-  return data
+  return data || []
 }
 
 /**

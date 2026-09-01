@@ -1886,6 +1886,7 @@ const SeasonsPage = () => {
   const [newPeriod, setNewPeriod] = useState({ season_id: '', name: '', start_date: '', end_date: '', price_per_night: '', min_nights: 1 })
   const [showNewSeason, setShowNewSeason] = useState(false)
   const [showNewPeriod, setShowNewPeriod] = useState(null)
+  const [editingSeason, setEditingSeason] = useState(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -1995,6 +1996,49 @@ const SeasonsPage = () => {
     }
   }
 
+  // ---- Säsongspriser (datum + priser per säsong) ----
+  const numOr = (v, d) => { const n = parseInt(v); return Number.isNaN(n) ? d : n }
+  // Effektiva priser för en säsong: säsongens egna prices, annars globala fallback.
+  const seasonPriceDefaults = (season) => {
+    const p = season.prices || {}
+    return {
+      price_per_person_per_night: p.price_per_person_per_night != null ? p.price_per_person_per_night : numOr(settings.price_per_person_per_night, 950),
+      min_price_per_night: p.min_price_per_night != null ? p.min_price_per_night : numOr(settings.min_price_per_night, 4000),
+      lillstuga_min_price_per_night: p.lillstuga_min_price_per_night != null ? p.lillstuga_min_price_per_night : numOr(settings.lillstuga_min_price_per_night, 2000),
+      deposit_amount: p.deposit_amount != null ? p.deposit_amount : numOr(settings.deposit_amount, 5000),
+      lillstuga_cleaning_price: p.lillstuga_cleaning_price != null ? p.lillstuga_cleaning_price : numOr(settings.lillstuga_cleaning_price, 700),
+      addons: Object.fromEntries((addons || []).map(a => [a.slug, (p.addons && p.addons[a.slug] != null) ? p.addons[a.slug] : a.price])),
+    }
+  }
+
+  const startEditSeason = (season) => {
+    setEditingSeason({ id: season.id, start_date: season.start_date || '', end_date: season.end_date || '', prices: seasonPriceDefaults(season) })
+  }
+
+  const saveSeason = async () => {
+    if (!editingSeason) return
+    if (!editingSeason.start_date || !editingSeason.end_date) { alert('Ange start- och slutdatum.'); return }
+    try {
+      const p = editingSeason.prices
+      const prices = {
+        price_per_person_per_night: parseInt(p.price_per_person_per_night) || 0,
+        min_price_per_night: parseInt(p.min_price_per_night) || 0,
+        lillstuga_min_price_per_night: parseInt(p.lillstuga_min_price_per_night) || 0,
+        deposit_amount: parseInt(p.deposit_amount) || 0,
+        lillstuga_cleaning_price: parseInt(p.lillstuga_cleaning_price) || 0,
+        addons: Object.fromEntries(Object.entries(p.addons || {}).map(([k, v]) => [k, parseInt(v) || 0])),
+      }
+      await api.updateSeason(editingSeason.id, { start_date: editingSeason.start_date, end_date: editingSeason.end_date, prices })
+      setEditingSeason(null)
+      loadData()
+    } catch (err) {
+      alert('Kunde inte spara säsong: ' + err.message)
+    }
+  }
+
+  const fmtKr = (n) => new Intl.NumberFormat('sv-SE').format(n) + ' kr'
+  const addonName = (a) => a.translations?.sv?.name || a.translations?.en?.name || a.slug
+
   if (loading) return <div className="admin-loading">Laddar säsonger...</div>
 
   return (
@@ -2035,12 +2079,64 @@ const SeasonsPage = () => {
               </span>
               <button
                 className="admin-btn admin-btn-secondary admin-btn-xs"
+                onClick={() => (editingSeason?.id === season.id ? setEditingSeason(null) : startEditSeason(season))}
+              >
+                {editingSeason?.id === season.id ? 'Stäng' : 'Redigera'}
+              </button>
+              <button
+                className="admin-btn admin-btn-secondary admin-btn-xs"
                 onClick={() => handleToggleActive(season)}
               >
                 {season.is_active ? 'Inaktivera' : 'Aktivera'}
               </button>
             </div>
           </div>
+
+          {/* ---- Säsongspriser (datum + priser per säsong) ---- */}
+          {editingSeason?.id === season.id ? (
+            <div className="detail-card" style={{ margin: '0.75rem 0' }}>
+              <h4 style={{ marginTop: 0 }}>Redigera säsong &amp; priser</h4>
+              <div className="detail-row" style={{ alignItems: 'center' }}><span>Startdatum</span><input type="date" value={editingSeason.start_date} onChange={e => setEditingSeason(s => ({ ...s, start_date: e.target.value }))} /></div>
+              <div className="detail-row" style={{ alignItems: 'center' }}><span>Slutdatum</span><input type="date" value={editingSeason.end_date} onChange={e => setEditingSeason(s => ({ ...s, end_date: e.target.value }))} /></div>
+              <h5 style={{ margin: '0.75rem 0 0.25rem' }}>Lodge &amp; deposition</h5>
+              {[
+                ['price_per_person_per_night', 'Pris per person/natt'],
+                ['min_price_per_night', 'Minpris/natt – hela lodgen'],
+                ['lillstuga_min_price_per_night', 'Minpris/natt – Lillstugan'],
+                ['deposit_amount', 'Deposition'],
+                ['lillstuga_cleaning_price', 'Städning (endast Lillstugan)'],
+              ].map(([key, label]) => (
+                <div className="detail-row" style={{ alignItems: 'center' }} key={key}>
+                  <span>{label} (SEK)</span>
+                  <input type="number" min="0" step="50" value={editingSeason.prices[key]} style={{ width: '120px', textAlign: 'right' }}
+                    onChange={e => setEditingSeason(s => ({ ...s, prices: { ...s.prices, [key]: e.target.value } }))} />
+                </div>
+              ))}
+              <h5 style={{ margin: '0.75rem 0 0.25rem' }}>Tillval</h5>
+              {addons.map(a => (
+                <div className="detail-row" style={{ alignItems: 'center' }} key={a.slug}>
+                  <span>{addonName(a)} (SEK)</span>
+                  <input type="number" min="0" step="50" value={editingSeason.prices.addons[a.slug] ?? ''} style={{ width: '120px', textAlign: 'right' }}
+                    onChange={e => setEditingSeason(s => ({ ...s, prices: { ...s.prices, addons: { ...s.prices.addons, [a.slug]: e.target.value } } }))} />
+                </div>
+              ))}
+              <div className="action-btns" style={{ marginTop: '0.75rem' }}>
+                <button className="admin-btn admin-btn-confirm admin-btn-sm" onClick={saveSeason}>Spara</button>
+                <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setEditingSeason(null)}>Avbryt</button>
+              </div>
+            </div>
+          ) : (
+            (() => {
+              const d = seasonPriceDefaults(season)
+              const isDefault = !season.prices || Object.keys(season.prices).length === 0
+              return (
+                <div style={{ margin: '0.5rem 0 0.25rem', fontSize: '0.9rem', color: 'var(--admin-text-muted)' }}>
+                  <strong style={{ color: 'inherit' }}>Säsongspriser{isDefault ? ' (globala – ej satta för säsongen)' : ''}:</strong>{' '}
+                  {fmtKr(d.price_per_person_per_night)}/pers · lodge från {fmtKr(d.min_price_per_night)} · Lillstugan från {fmtKr(d.lillstuga_min_price_per_night)} · deposition {fmtKr(d.deposit_amount)}
+                </div>
+              )
+            })()
+          )}
 
           <div className="pricing-periods">
             <h4>Prisperioder</h4>

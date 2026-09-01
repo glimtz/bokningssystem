@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useState, useCallback, useEffect, useMemo } from 'react';
-import { createBookingRequest, getAddons as fetchAddons, getBlockedDates, getBookedDates, getSettings } from './api';
+import { createBookingRequest, getAddons as fetchAddons, getBlockedDates, getBookedDates, getSettings, getActiveSeasons } from './api';
 
 const I18nContext = createContext();
 const BookingContext = createContext();
@@ -450,6 +450,65 @@ const RENTAL_OPTIONS = ['lillstuga', 'full_lodge'];
 // Båda använder samma pris/person; de skiljer sig i golvpris och max antal gäster.
 //   full_lodge = hela lodgen (golv 4000, max 8)
 //   lillstuga  = endast Lillstugan (golv 2000, max 4)
+// ── Säsonger ─────────────────────────────────────────────
+// En dag är bokningsbar om den ligger inom någon aktiv säsongs [start_date, end_date].
+// Priser (lodge/deposition/tillval) tas från säsongen som innehåller incheckningsdatumet.
+const parseSeasonDate = (str) => str ? new Date(String(str).substring(0, 10) + 'T00:00:00') : null;
+
+const seasonForDate = (seasons, date) => {
+  if (!seasons || !seasons.length || !date) return null;
+  const d = (date instanceof Date) ? date : parseSeasonDate(date);
+  if (!d) return null;
+  return seasons.find(s => {
+    const start = parseSeasonDate(s.start_date), end = parseSeasonDate(s.end_date);
+    return start && end && d >= start && d <= end;
+  }) || null;
+};
+
+const dateInAnySeason = (seasons, date) => {
+  if (!seasons || !seasons.length) {
+    // Fallback om inga säsonger är konfigurerade: gamla maj–sep-regeln, så sajten inte dör.
+    const m = date.getMonth();
+    return m >= 4 && m <= 8;
+  }
+  return !!seasonForDate(seasons, date);
+};
+
+const earliestSeason = (seasons) => {
+  if (!seasons || !seasons.length) return null;
+  return [...seasons].sort((a, b) => parseSeasonDate(a.start_date) - parseSeasonDate(b.start_date))[0];
+};
+
+// Slå ihop säsongens priser över globala settings så befintliga helpers automatiskt får rätt belopp.
+const seasonSettings = (base, season) => {
+  const p = season && season.prices;
+  if (!p) return base;
+  const merged = { ...base };
+  for (const k of ['price_per_person_per_night', 'min_price_per_night', 'lillstuga_min_price_per_night', 'lillstuga_cleaning_price', 'deposit_amount']) {
+    if (p[k] != null) merged[k] = p[k];
+  }
+  return merged;
+};
+
+// Överskrid varje tillvals pris med säsongens pris (per slug), om satt.
+const applySeasonAddonPrices = (dbAddons, season) => {
+  const ap = season && season.prices && season.prices.addons;
+  if (!ap) return dbAddons;
+  return (dbAddons || []).map(a => (ap[a.slug] != null ? { ...a, price: ap[a.slug] } : a));
+};
+
+// Startvy för kalendern: månaden för säsongen som innehåller idag, annars närmaste kommande säsong.
+const initialCalendarView = (seasons, today) => {
+  const list = (seasons || []).map(s => ({ start: parseSeasonDate(s.start_date), end: parseSeasonDate(s.end_date) }))
+    .filter(s => s.start && s.end).sort((a, b) => a.start - b.start);
+  if (!list.length) return { year: today.getFullYear(), month: today.getMonth() >= 4 ? today.getMonth() : 4 };
+  const cur = list.find(s => today >= s.start && today <= s.end);
+  if (cur) return { year: today.getFullYear(), month: today.getMonth() };
+  const upcoming = list.find(s => s.start > today);
+  const target = (upcoming || list[0]).start;
+  return { year: target.getFullYear(), month: target.getMonth() };
+};
+
 const getRentalOptions = (settings) => {
   const perPerson = parseInt(settings.price_per_person_per_night) || 950;
   return {
@@ -532,6 +591,7 @@ const initialState = {
   blockedDates: [],   // Blocked dates from Supabase
   bookedDates: [],    // Booked date ranges from Supabase
   settings: {},       // Settings from Supabase
+  seasons: [],        // Aktiva säsonger (med priser) från Supabase
   submittedRef: null,  // Booking reference after successful submit
 };
 
@@ -582,8 +642,9 @@ const bookingReducer = (state, action) => {
     case 'SET_BLOCKED_DATES': return { ...state, blockedDates: action.payload };
     case 'SET_BOOKED_DATES': return { ...state, bookedDates: action.payload };
     case 'SET_SETTINGS': return { ...state, settings: action.payload };
+    case 'SET_SEASONS': return { ...state, seasons: action.payload };
     case 'SET_SUBMITTED_REF': return { ...state, submittedRef: action.payload };
-    case 'RESET': return { ...initialState, dbAddons: state.dbAddons, blockedDates: state.blockedDates, bookedDates: state.bookedDates, settings: state.settings };
+    case 'RESET': return { ...initialState, dbAddons: state.dbAddons, blockedDates: state.blockedDates, bookedDates: state.bookedDates, settings: state.settings, seasons: state.seasons };
     default: return state;
   }
 };
@@ -595,16 +656,18 @@ const BookingProvider = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [dbAddons, blocked, booked, settings] = await Promise.all([
+        const [dbAddons, blocked, booked, settings, seasons] = await Promise.all([
           fetchAddons(),
           getBlockedDates(),
           getBookedDates(),
           getSettings(),
+          getActiveSeasons(),
         ]);
         dispatch({ type: 'SET_DB_ADDONS', payload: dbAddons });
         dispatch({ type: 'SET_BLOCKED_DATES', payload: blocked });
         dispatch({ type: 'SET_BOOKED_DATES', payload: booked });
         dispatch({ type: 'SET_SETTINGS', payload: settings });
+        dispatch({ type: 'SET_SEASONS', payload: seasons });
       } catch (err) {
         console.error('Failed to load booking data:', err);
       } finally {
@@ -624,10 +687,15 @@ const BookingProvider = ({ children }) => {
 const StepDates = () => {
   const { state, dispatch } = useBooking();
   const { t } = useI18n();
-  const lodge = getLodgeConfig(state.settings, state.rentalOption);
   const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth() >= 4 ? today.getMonth() : 4);
+  // Priser tas från säsongen som innehåller incheckningsdatumet; innan datum valts
+  // visas närmaste aktiva säsongs priser på boendekorten.
+  const priceSeason = seasonForDate(state.seasons, state.dates.checkIn) || earliestSeason(state.seasons);
+  const effSettings = seasonSettings(state.settings, priceSeason);
+  const lodge = getLodgeConfig(effSettings, state.rentalOption);
+  const initialView = initialCalendarView(state.seasons, today);
+  const [viewYear, setViewYear] = useState(initialView.year);
+  const [viewMonth, setViewMonth] = useState(initialView.month);
   const months = t('dates.months'), weekdays = t('dates.weekdays'), { checkIn, checkOut } = state.dates;
 
   const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
@@ -701,7 +769,7 @@ const StepDates = () => {
   const getDayClass = (day) => {
     const date = new Date(viewYear, viewMonth, day), classes = ['calendar-day'];
     if (isSameDay(date, today)) classes.push('today');
-    if (date < today || date.getMonth() < 4 || date.getMonth() > 8) { classes.push('disabled'); return classes.join(' '); }
+    if (date < today || !dateInAnySeason(state.seasons, date)) { classes.push('disabled'); return classes.join(' '); }
     if (isUnavailable(date)) { classes.push('booked'); return classes.join(' '); }
     if (isSameDay(date, checkIn)) { classes.push('selected'); if (checkOut) classes.push('range-start'); } else if (isSameDay(date, checkOut)) {
       classes.push('selected', 'range-end');
@@ -711,7 +779,7 @@ const StepDates = () => {
 
   const nightCount = checkIn && checkOut ? Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24)) : 0, canProceed = checkIn && checkOut && nightCount > 0;
   const fmt = (n) => new Intl.NumberFormat('sv-SE').format(n);
-  const rentalOptions = getRentalOptions(state.settings);
+  const rentalOptions = getRentalOptions(effSettings);
 
   return (
     <div>
@@ -764,7 +832,7 @@ const StepDates = () => {
           {Array.from({ length: firstDay }).map((_, i) => (<div key={`empty-${i}`} className="calendar-day empty" />))}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1, date = new Date(viewYear, viewMonth, day);
-            const isOutOfSeason = date < today || date.getMonth() < 4 || date.getMonth() > 8;
+            const isOutOfSeason = date < today || !dateInAnySeason(state.seasons, date);
             const isBooked = isUnavailable(date);
             const bookedStyle = isBooked ? {
               background: '#EDEAE3',
@@ -798,7 +866,9 @@ const StepDates = () => {
 const StepAddons = () => {
   const { state, dispatch } = useBooking();
   const { t } = useI18n();
-  const addons = getAddonsList(state.dbAddons, state.rentalOption, state.settings);
+  const priceSeason = seasonForDate(state.seasons, state.dates.checkIn);
+  const effSettings = seasonSettings(state.settings, priceSeason);
+  const addons = getAddonsList(applySeasonAddonPrices(state.dbAddons, priceSeason), state.rentalOption, effSettings);
   const nightCount = state.dates.checkIn && state.dates.checkOut ? Math.round((state.dates.checkOut - state.dates.checkIn) / (1000 * 60 * 60 * 24)) : 0;
   const guestCount = state.guests.count;
   const formatPrice = (price) => new Intl.NumberFormat('sv-SE').format(price) + ' SEK';
@@ -963,8 +1033,10 @@ const StepContact = () => {
 const StepSummary = () => {
   const { state, dispatch } = useBooking();
   const { t, lang } = useI18n();
-  const lodge = getLodgeConfig(state.settings, state.rentalOption);
-  const addons = getAddonsList(state.dbAddons, state.rentalOption, state.settings);
+  const priceSeason = seasonForDate(state.seasons, state.dates.checkIn);
+  const effSettings = seasonSettings(state.settings, priceSeason);
+  const lodge = getLodgeConfig(effSettings, state.rentalOption);
+  const addons = getAddonsList(applySeasonAddonPrices(state.dbAddons, priceSeason), state.rentalOption, effSettings);
   const [submitted, setSubmitted] = useState(false), [sending, setSending] = useState(false);
   const months = t('dates.months'), selectedAddons = addons.filter((a) => state.addons[a.id]?.selected), guestCount = state.guests.count;
   const nightCount = state.dates.checkIn && state.dates.checkOut ? Math.round((state.dates.checkOut - state.dates.checkIn) / (1000 * 60 * 60 * 24)) : 0;
@@ -1031,7 +1103,7 @@ const StepSummary = () => {
           lodge_total: lodgeTotal,
           addons_total: addonsTotal,
           total_price: totalEstimate,
-          deposit_amount: parseInt(state.settings?.deposit_amount) || 5000,
+          deposit_amount: parseInt(effSettings?.deposit_amount) || 5000,
         },
       });
 

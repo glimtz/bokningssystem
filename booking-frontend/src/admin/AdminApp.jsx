@@ -418,7 +418,8 @@ const statusBadgeClass = {
 }
 
 // Helper: check if a pending booking overlaps with any confirmed/paid/completed booking
-// check_out day is treated as occupied (cleaning time) — two bookings cannot share any day.
+// Only NIGHTS count — same-day changeover is allowed, so one booking's check_out day
+// may be another booking's check_in day.
 const hasDateConflict = (booking, allBookings) => {
   if (booking.status !== 'pending') return false
   const start = new Date(booking.check_in + 'T00:00:00')
@@ -430,8 +431,8 @@ const hasDateConflict = (booking, allBookings) => {
     if (!confirmedStatuses.includes(other.status)) return false
     const otherStart = new Date(other.check_in + 'T00:00:00')
     const otherEnd = new Date(other.check_out + 'T00:00:00')
-    // Overlap (inclusive): booking ranges may not touch at all
-    return start <= otherEnd && end >= otherStart
+    // Half-open ranges [check_in, check_out): touching endpoints are OK
+    return start < otherEnd && end > otherStart
   })
 }
 
@@ -1742,8 +1743,8 @@ const CalendarPage = () => {
     let bestStatus = null
     let bestPriority = -1
     for (const b of bookings) {
-      // check_out day is treated as occupied (cleaning time) — matches public calendar and hasDateConflict
-      if (dateStr >= toDateStr(b.check_in) && dateStr <= toDateStr(b.check_out)) {
+      // Only nights count — check_out day is free (same-day changeover), matches public calendar and hasDateConflict
+      if (dateStr >= toDateStr(b.check_in) && dateStr < toDateStr(b.check_out)) {
         const prio = statusPriority[b.status] || 0
         if (prio > bestPriority) {
           bestStatus = b.status
@@ -1759,8 +1760,8 @@ const CalendarPage = () => {
     let best = null
     let bestPriority = -1
     for (const b of bookings) {
-      // check_out day is treated as occupied (cleaning time) — matches public calendar and hasDateConflict
-      if (dateStr >= toDateStr(b.check_in) && dateStr <= toDateStr(b.check_out)) {
+      // Only nights count — check_out day is free (same-day changeover), matches public calendar and hasDateConflict
+      if (dateStr >= toDateStr(b.check_in) && dateStr < toDateStr(b.check_out)) {
         const prio = statusPriority[b.status] || 0
         if (prio > bestPriority) {
           best = b

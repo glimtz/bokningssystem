@@ -703,15 +703,16 @@ const StepDates = () => {
   const isSameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const formatDate = (date) => !date ? '—' : `${date.getDate()} ${months[date.getMonth()]}`;
 
-  // Build a Set of blocked dates (check_in through check_out, inclusive).
-  // check_out day is also blocked — lodge needs cleaning before next check-in.
+  // Build a Set of occupied NIGHTS (check_in through check_out - 1).
+  // The check_out day itself is free — same-day changeover is allowed:
+  // a departing guest leaves in the morning, the next guest arrives in the afternoon.
   const bookedNights = useMemo(() => {
     const nights = new Set();
     (state.bookedDates || []).forEach(({ check_in, check_out }) => {
       const start = new Date(check_in + 'T00:00:00');
       const end = new Date(check_out + 'T00:00:00');
       const d = new Date(start);
-      while (d <= end) {
+      while (d < end) {
         nights.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
         d.setDate(d.getDate() + 1);
       }
@@ -834,12 +835,16 @@ const StepDates = () => {
             const day = i + 1, date = new Date(viewYear, viewMonth, day);
             const isOutOfSeason = date < today || !dateInAnySeason(state.seasons, date);
             const isBooked = isUnavailable(date);
-            const bookedStyle = isBooked ? {
+            // En upptagen natt kan ändå väljas som UTCHECKNINGSDAG (avresa på morgonen,
+            // nästa gäst checkar in samma eftermiddag) om nätterna innan är lediga.
+            const selectableAsCheckout = isBooked && checkIn && !checkOut && date > checkIn && !rangeHasConflict(checkIn, date);
+            const isDayDisabled = isBooked && !selectableAsCheckout;
+            const bookedStyle = isDayDisabled ? {
               background: '#EDEAE3',
               color: '#A8A49B',
               cursor: 'not-allowed',
             } : undefined;
-            return <button key={day} className={getDayClass(day)} style={bookedStyle} onClick={() => !isOutOfSeason && !isBooked && handleDayClick(day)} disabled={isOutOfSeason}>{day}</button>;
+            return <button key={day} className={getDayClass(day)} style={bookedStyle} onClick={() => !isOutOfSeason && !isDayDisabled && handleDayClick(day)} disabled={isOutOfSeason}>{day}</button>;
           })}
         </div>
         {(checkIn || checkOut) && (

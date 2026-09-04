@@ -31,6 +31,16 @@ kommer i otakt. Kort checklista (fullständig setup i avsnitt 5):
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Samma-dags-byte tillåtet (2026-09-04)** — tidigare blockerades hela intervallet `check_in`–`check_out`
+  *inklusive* utcheckningsdagen ("städdag"), vilket gjorde att två bokningar inte fick dela en enda dag. Det
+  stoppade helt legitima bokningar: en förfrågan 23–27 sept gick inte att lägga eftersom en befintlig bokning
+  checkade in den 27:e. Nu räknas bara **nätter** (halvöppet intervall `[check_in, check_out)`), så en gästs
+  utcheckningsdag får vara nästa gästs incheckningsdag. Ändrat på fyra ställen:
+  `BookingApp.jsx` (`bookedNights` slutar på `check_out - 1`; en upptagen natt går ändå att klicka som
+  **utcheckningsdag** om nätterna innan är lediga) och `admin/AdminApp.jsx` (`hasDateConflict` använder
+  `start < otherEnd && end > otherStart`; `getDateStatus`/`getBookingForDate` markerar inte längre
+  utcheckningsdagen som upptagen). Obs: städning måste alltså hinnas med samma dag vid byte.
+
 - **Säsongsprissättning (2026-09-01)** — det publika flödet drivs nu av `seasons`-tabellen i stället för
   hårdkodade maj–sep-datum. En dag är bokningsbar om den ligger inom NÅGON aktiv säsongs [start_date, end_date];
   gästen kan fritt boka datum i vilken aktiv säsong som helst. Priser (lodge per person, golvpriser för

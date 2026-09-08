@@ -691,12 +691,32 @@ const BookingsPage = () => {
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [showNew, setShowNew] = useState(false)
+  // Sorteringen sparas i webbläsaren så den ligger kvar nästa gång du öppnar listan.
+  const [sort, setSort] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('fm.bookings.sort') || 'null')
+      if (saved && api.BOOKING_SORT_KEYS.includes(saved.key)) return saved
+    } catch { /* trasigt värde i localStorage – strunta i det */ }
+    return { key: 'created_at', dir: 'desc' }
+  })
+
+  useEffect(() => {
+    try { localStorage.setItem('fm.bookings.sort', JSON.stringify(sort)) } catch { /* privat läge e.d. */ }
+  }, [sort])
+
+  // Klick på samma kolumn vänder ordningen. Klick på ny kolumn börjar med den
+  // ordning som är mest användbar för den typen av värde.
+  const toggleSort = (key) => {
+    setSort(prev => prev.key === key
+      ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { key, dir: ['check_in', 'check_out', 'reference'].includes(key) ? 'asc' : 'desc' })
+  }
 
   const loadBookings = useCallback(async () => {
     setLoading(true)
     try {
       const [filtered, all] = await Promise.all([
-        api.getBookings({ status: filter, search }),
+        api.getBookings({ status: filter, search, sortKey: sort.key, sortDir: sort.dir }),
         api.getBookings({ status: 'all', limit: 500 }),
       ])
       setBookings(filtered.data)
@@ -706,12 +726,23 @@ const BookingsPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [filter, search])
+  }, [filter, search, sort])
 
   useEffect(() => { loadBookings() }, [loadBookings])
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('sv-SE') : '—'
   const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
+
+  const SortableTh = ({ sortKey, children }) => (
+    <th
+      className={`sortable-th ${sort.key === sortKey ? 'sorted' : ''}`}
+      onClick={() => toggleSort(sortKey)}
+      title="Klicka för att sortera"
+    >
+      {children}
+      <span className="sort-arrow">{sort.key === sortKey ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+    </th>
+  )
 
   return (
     <div>
@@ -758,13 +789,13 @@ const BookingsPage = () => {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Referens</th>
+                <SortableTh sortKey="reference">Referens</SortableTh>
                 <th>Gäst</th>
-                <th>Incheckning</th>
-                <th>Utcheckning</th>
-                <th>Gäster</th>
-                <th>Totalt</th>
-                <th>Status</th>
+                <SortableTh sortKey="check_in">Incheckning</SortableTh>
+                <SortableTh sortKey="check_out">Utcheckning</SortableTh>
+                <SortableTh sortKey="num_guests">Gäster</SortableTh>
+                <SortableTh sortKey="total_price">Totalt</SortableTh>
+                <SortableTh sortKey="status">Status</SortableTh>
                 <th>Åtgärd</th>
               </tr>
             </thead>
@@ -804,6 +835,10 @@ const BookingsPage = () => {
   )
 }
 
+// Standardmottagare när en bokningssammanställning mejlas från bokningsvyn.
+// Adressen går att skriva om i dialogen — ändra här om ekonomen byts ut.
+const SUMMARY_DEFAULT_RECIPIENT = 'john@irmekonsult.se'
+
 // ============================================================
 // BOOKING DETAIL PAGE
 // ============================================================
@@ -829,6 +864,9 @@ const BookingDetailPage = () => {
   const [savingDetails, setSavingDetails] = useState(false)
   const [editingAddons, setEditingAddons] = useState(false)
   const [addAddonId, setAddAddonId] = useState('')
+  const [showMail, setShowMail] = useState(false)
+  const [mailTo, setMailTo] = useState(SUMMARY_DEFAULT_RECIPIENT)
+  const [mailSending, setMailSending] = useState(false)
   const [seasons, setSeasons] = useState([])
 
   const loadBooking = useCallback(async () => {
@@ -1135,10 +1173,10 @@ const BookingDetailPage = () => {
     }
   }
 
-  // Öppna en ren, printbar sammanställning av bokningen i ett nytt fönster
-  // och trigga utskrift. Allt sker i frontend — inget skickas någonstans.
-  const handlePrint = () => {
-    if (!booking) return
+  // Bygger en ren, fristående HTML-sammanställning av bokningen. Används av både
+  // utskriften och mejlfunktionen så att de två aldrig glider isär.
+  const buildSummaryHtml = () => {
+    if (!booking) return null
     const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
     const fmtDate = (d) => d ? new Date(d).toLocaleDateString('sv-SE') : '—'
     const fmtPrice = (p) => new Intl.NumberFormat('sv-SE').format(p || 0) + ' kr'
@@ -1222,6 +1260,15 @@ const BookingDetailPage = () => {
   <footer>Flightmode Adventures AB · info@flightmode.se<br>Utskrivet ${new Date().toLocaleDateString('sv-SE')} ${new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</footer>
 </div></body></html>`
 
+    return html
+  }
+
+  // Skriv ut: öppna sammanställningen i ett nytt fönster och trigga utskrift.
+  // Allt sker i frontend — inget skickas någonstans.
+  const handlePrint = () => {
+    const html = buildSummaryHtml()
+    if (!html) return
+
     const w = window.open('', '_blank', 'width=820,height=920')
     if (!w) { alert('Kunde inte öppna utskriftsfönstret. Tillåt popup-fönster för sidan och försök igen.'); return }
     w.document.open()
@@ -1229,6 +1276,32 @@ const BookingDetailPage = () => {
     w.document.close()
     w.focus()
     setTimeout(() => { try { w.print() } catch (e) { /* användaren kan skriva ut manuellt */ } }, 300)
+  }
+
+  // Mejla samma sammanställning via Edge Function send-booking-emails.
+  // Innehållet är identiskt med utskriften — inklusive betalningsstatus och
+  // interna anteckningar — så kontrollera mottagaradressen innan du skickar.
+  const handleSendSummary = async () => {
+    const to = mailTo.trim()
+    if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(to)) {
+      alert('Ange en giltig e-postadress.')
+      return
+    }
+    const html = buildSummaryHtml()
+    if (!html) return
+
+    setMailSending(true)
+    try {
+      const res = await api.sendBookingSummary(id, to, html)
+      if (!res.ok) {
+        alert('Mejlet kunde inte skickas: ' + res.error)
+        return
+      }
+      setShowMail(false)
+      alert(`Sammanställningen för ${booking.reference} skickades till ${to}.`)
+    } finally {
+      setMailSending(false)
+    }
   }
 
   if (loading) return <div className="admin-loading">Laddar bokning...</div>
@@ -1248,10 +1321,69 @@ const BookingDetailPage = () => {
         <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => navigate('/admin/bookings')}>
           ← Tillbaka
         </button>
-        <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={handlePrint}>
-          🖨 Skriv ut
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => { setMailTo(SUMMARY_DEFAULT_RECIPIENT); setShowMail(true) }}>
+            ✉ Mejla
+          </button>
+          <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={handlePrint}>
+            🖨 Skriv ut
+          </button>
+        </div>
       </div>
+
+      {showMail && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', zIndex: 1000, overflowY: 'auto' }}
+          onClick={() => !mailSending && setShowMail(false)}
+        >
+          <div
+            style={{ background: 'var(--admin-card-bg, #fff)', color: 'var(--admin-text, inherit)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '460px', boxShadow: '0 10px 40px rgba(0,0,0,0.25)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0 }}>Mejla sammanställning</h2>
+              <button className="admin-btn admin-btn-secondary admin-btn-xs" onClick={() => setShowMail(false)} disabled={mailSending}>✕</button>
+            </div>
+
+            <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>
+              Skickar bokning <strong>{booking.reference}</strong> som mail från info@flightmode.se.
+              Innehållet är identiskt med utskriften — <strong>inklusive betalningsstatus och interna
+              anteckningar</strong>. Kontrollera adressen innan du skickar.
+            </p>
+
+            <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Mottagare</label>
+            <input
+              type="email"
+              value={mailTo}
+              onChange={e => setMailTo(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !mailSending) handleSendSummary() }}
+              disabled={mailSending}
+              style={{ width: '100%' }}
+              autoFocus
+            />
+
+            {booking.guests?.email && (
+              <button
+                className="admin-btn admin-btn-secondary admin-btn-xs"
+                style={{ marginTop: '0.5rem' }}
+                onClick={() => setMailTo(booking.guests.email)}
+                disabled={mailSending}
+              >
+                Använd gästens adress ({booking.guests.email})
+              </button>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+              <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={handleSendSummary} disabled={mailSending}>
+                {mailSending ? 'Skickar…' : 'Skicka'}
+              </button>
+              <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setShowMail(false)} disabled={mailSending}>
+                Avbryt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="detail-header">
         <h1 className="admin-page-title">{booking.reference}</h1>

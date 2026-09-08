@@ -180,7 +180,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       termsHeading: "Key terms",
       term1: "Booking is only valid once the booking fee has been received.",
       term2: "Final payment (remaining 50%) is due no later than 30 days before arrival.",
-      term3: "A security deposit of 5,000 SEK is paid separately and refunded after inspection.",
+      term3: "A security deposit is paid separately and refunded after inspection.",
       term4: "Cancellation: 5% admin fee if cancelled 30+ days before arrival; 50% refund 14–30 days; no refund within 14 days.",
       contractLink: "Read the full booking agreement",
       closing: "We look forward to welcoming you to Vilhelmina Lodge!",
@@ -206,7 +206,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       termsHeading: "Viktiga villkor",
       term1: "Bokningen är giltig först när bokningsavgiften har mottagits.",
       term2: "Slutbetalning (resterande 50%) ska vara oss tillhanda senast 30 dagar före ankomst.",
-      term3: "Säkerhetsdeposition på 5 000 kr betalas separat och återbetalas efter avsyning.",
+      term3: "Säkerhetsdeposition betalas separat och återbetalas efter avsyning.",
       term4: "Avbokning: 5% administrationsavgift vid 30+ dagar före ankomst; 50% återbetalning 14–30 dagar; ingen återbetalning inom 14 dagar.",
       contractLink: "Läs hela bokningsavtalet",
       closing: "Vi ser fram emot att välkomna dig till Vilhelmina Lodge!",
@@ -232,7 +232,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       termsHeading: "Wichtige Bedingungen",
       term1: "Die Buchung ist erst gültig, wenn die Buchungsgebühr eingegangen ist.",
       term2: "Die Restzahlung (verbleibende 50%) ist spätestens 30 Tage vor Ankunft fällig.",
-      term3: "Eine Sicherheitskaution von 5.000 SEK wird separat bezahlt und nach der Abnahme zurückerstattet.",
+      term3: "Eine Sicherheitskaution wird separat bezahlt und nach der Abnahme zurückerstattet.",
       term4: "Stornierung: 5% Verwaltungsgebühr bei Stornierung 30+ Tage vor Ankunft; 50% Rückerstattung 14–30 Tage; keine Rückerstattung innerhalb von 14 Tagen.",
       contractLink: "Vollständige Buchungsvereinbarung lesen",
       closing: "Wir freuen uns, Sie in der Vilhelmina Lodge willkommen zu heißen!",
@@ -258,7 +258,7 @@ const translations: Record<EventType, Record<Lang, Record<string, string>>> = {
       termsHeading: "Conditions clés",
       term1: "La réservation n'est valable qu'une fois les frais de réservation reçus.",
       term2: "Le paiement final (50% restants) est dû au plus tard 30 jours avant l'arrivée.",
-      term3: "Une caution de sécurité de 5 000 SEK est payée séparément et remboursée après inspection.",
+      term3: "Une caution de sécurité est payée séparément et remboursée après inspection.",
       term4: "Annulation : 5% de frais administratifs si annulé 30+ jours avant l'arrivée ; 50% de remboursement 14–30 jours ; aucun remboursement dans les 14 jours.",
       contractLink: "Lire l'accord de réservation complet",
       closing: "Nous avons hâte de vous accueillir au Vilhelmina Lodge !",
@@ -725,6 +725,49 @@ async function handleStatusEmail(supabase: any, eventType: "booking_confirmed" |
 }
 
 // ============================================================
+// BOKNINGSSAMMANSTÄLLNING — admin mejlar utskriftsvyn
+// ============================================================
+// HTML:en byggs i admin-UI:t (samma funktion som "Skriv ut") så att utskrift
+// och mail alltid ser likadana ut och bara behöver underhållas på ett ställe.
+// Priset för det är att funktionen tar emot färdig HTML — därför MÅSTE
+// anroparen vara en inloggad admin. Enbart verify_jwt räcker inte: den publika
+// anon-nyckeln är också en giltig JWT, så utan kontrollen nedan hade vem som
+// helst kunnat skicka valfri HTML till valfri adress från info@flightmode.se.
+
+const EMAIL_RE = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
+
+async function requireAuthenticatedUser(req: Request, supabase: any) {
+  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new Error("Saknar Authorization-header");
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) {
+    throw new Error("Endast inloggade admin-användare får mejla bokningssammanställningar");
+  }
+  return data.user;
+}
+
+async function handleBookingSummary(supabase: any, bookingId: string, to: string, html: string) {
+  const recipient = String(to || "").trim();
+  if (!EMAIL_RE.test(recipient)) throw new Error(`Ogiltig mottagaradress: ${recipient}`);
+  if (typeof html !== "string" || html.length < 100) throw new Error("Sammanställningen saknar innehåll");
+  if (html.length > 400000) throw new Error("Sammanställningen är för stor för att mejlas");
+
+  const { data: booking, error } = await supabase
+    .from("bookings").select("id, reference, guest_id").eq("id", bookingId).single();
+  if (error) throw error;
+
+  const subject = `Bokningssammanställning ${booking.reference} — Vilhelmina Lodge`;
+  await sendEmail(recipient, subject, html);
+
+  await supabase.from("email_log").insert([
+    { booking_id: booking.id, guest_id: booking.guest_id, email_type: "booking_summary", recipient, subject, status: "sent" },
+  ]);
+
+  return { success: true, message: `booking_summary sent to ${recipient}` };
+}
+
+// ============================================================
 // MAIN HANDLER — dispatcher baserat på payload-form
 // ============================================================
 
@@ -759,6 +802,17 @@ serve(async (req) => {
     //   { type: 'INSERT', table: 'bookings', record: {...}, ... }
     if (payload.type === "INSERT" && payload.record) {
       const result = await handleBookingReceived(supabase, payload.record);
+      return jsonResponse(result);
+    }
+
+    // Form 2b: Admin mejlar bokningssammanställningen (utskriftsvyn) till valfri adress
+    //   { event_type: 'booking_summary', booking_id: 'uuid', to: 'namn@exempel.se', html: '<!doctype html>...' }
+    if (payload.event_type === "booking_summary") {
+      await requireAuthenticatedUser(req, supabase);
+      if (!payload.booking_id || !payload.to || !payload.html) {
+        return jsonResponse({ error: "booking_summary kräver booking_id, to och html" }, 400);
+      }
+      const result = await handleBookingSummary(supabase, payload.booking_id, payload.to, payload.html);
       return jsonResponse(result);
     }
 

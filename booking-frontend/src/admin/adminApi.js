@@ -28,7 +28,14 @@ export function onAuthStateChange(callback) {
 // BOOKINGS — Full admin access
 // ============================================================
 
-export async function getBookings({ status, search, limit = 50, offset = 0 } = {}) {
+// Tillåtna sorteringskolumner. Vitlistan finns för att sortKey går rakt in i
+// PostgREST-frågan — aldrig skicka in ett fritt värde här.
+export const BOOKING_SORT_KEYS = ['created_at', 'check_in', 'check_out', 'num_guests', 'total_price', 'reference', 'status']
+
+export async function getBookings({ status, search, limit = 50, offset = 0, sortKey = 'created_at', sortDir = 'desc' } = {}) {
+  const orderCol = BOOKING_SORT_KEYS.includes(sortKey) ? sortKey : 'created_at'
+  const ascending = sortDir === 'asc'
+
   let query = supabase
     .from('bookings')
     .select(`
@@ -36,8 +43,11 @@ export async function getBookings({ status, search, limit = 50, offset = 0 } = {
       guests(*),
       booking_addons(*, addons(*))
     `, { count: 'exact' })
-    .order('created_at', { ascending: false })
+    .order(orderCol, { ascending, nullsFirst: false })
     .range(offset, offset + limit - 1)
+
+  // Sekundär sortering så listan inte hoppar runt vid lika värden.
+  if (orderCol !== 'created_at') query = query.order('created_at', { ascending: false })
 
   if (status && status !== 'all') {
     query = query.eq('status', status)
@@ -225,6 +235,23 @@ export async function sendStatusEmail(bookingId, eventType) {
   try {
     const { data, error } = await supabase.functions.invoke('send-booking-emails', {
       body: { event_type: eventType, booking_id: bookingId },
+    })
+    if (error) return { ok: false, error: error.message || String(error) }
+    if (data && data.error) return { ok: false, error: data.error }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) }
+  }
+}
+
+// Mejla bokningssammanställningen (exakt samma HTML som utskriften) till valfri
+// adress via Edge Function send-booking-emails. HTML:en byggs i admin-UI:t så att
+// utskrift och mail aldrig glider isär. Edge-funktionen kontrollerar att anroparen
+// är inloggad innan något skickas.
+export async function sendBookingSummary(bookingId, to, html) {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-booking-emails', {
+      body: { event_type: 'booking_summary', booking_id: bookingId, to, html },
     })
     if (error) return { ok: false, error: error.message || String(error) }
     if (data && data.error) return { ok: false, error: data.error }

@@ -608,6 +608,30 @@
   vertical-align: middle;
 }
 
+/* Sorterbara kolumnrubriker i bokningslistan */
+.admin-table th.sortable-th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-table th.sortable-th:hover {
+  color: var(--admin-text);
+}
+
+.admin-table th.sortable-th.sorted {
+  color: var(--admin-text);
+}
+
+.admin-table th .sort-arrow {
+  margin-left: 0.35rem;
+  font-size: 0.65rem;
+  opacity: 0.35;
+}
+
+.admin-table th.sortable-th.sorted .sort-arrow {
+  opacity: 1;
+}
+
 .admin-table.compact th,
 .admin-table.compact td {
   padding: 0.5rem 0.75rem;

@@ -2,7 +2,7 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-09-01
+> Senast uppdaterad: 2026-09-08
 
 ---
 
@@ -27,9 +27,32 @@ kommer i otakt. Kort checklista (fullständig setup i avsnitt 5):
 
 ---
 
-## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-09-01)
+## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-09-08)
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
+
+- **Mejla bokningssammanställningen (2026-09-08)** — bokningsvyn har en **✉ Mejla**-knapp bredvid
+  Skriv ut. Dialogen är förifylld med ekonomens adress (`SUMMARY_DEFAULT_RECIPIENT` i `AdminApp.jsx`,
+  idag `john@irmekonsult.se`) med en genväg till gästens adress. `handlePrint` är uppdelad: den nya
+  `buildSummaryHtml()` bygger HTML:en och används av **både** utskriften och mailet, så de aldrig glider
+  isär. Mailet innehåller allt utskriften gör — inklusive betalningsstatus och interna anteckningar —
+  vilket dialogen varnar för. Nytt `event_type: 'booking_summary'` i Edge-funktionen +
+  `sendBookingSummary()` i `adminApi.js`. **Kräver migration 008 + redeploy av Edge-funktionen.**
+  ⚠️ **Säkerhet:** funktionen tar emot färdig HTML från klienten, och `verify_jwt` räcker INTE som skydd —
+  den publika anon-nyckeln ligger i frontend-bundlen och är också en giltig JWT. Därför kontrollerar
+  `requireAuthenticatedUser()` att anroparen är en inloggad användare via `supabase.auth.getUser(token)`,
+  annars vore funktionen en öppen relä för spam från flightmode.se. Samma kontroll ska in i alla framtida
+  grenar som tar emot data från klienten.
+- **Sorterbar bokningslista (2026-09-08)** — kolumnrubrikerna Referens, Incheckning, Utcheckning, Gäster,
+  Totalt och Status är klickbara i `/admin/bookings`. Sorteringen sker **i databasen** (`getBookings`
+  tar `sortKey`/`sortDir`, kolumnnamnet valideras mot vitlistan `BOOKING_SORT_KEYS` eftersom det går rakt
+  in i PostgREST-frågan), med `created_at` som sekundär sortering. Valet sparas i `localStorage`
+  (`fm.bookings.sort`). Standard är fortfarande nyast skapad först. Gäst-kolumnen går inte att sortera på —
+  namnet ligger i den joinade `guests`-tabellen.
+- **Depositionsbeloppet borta ur mailets villkorstext (2026-09-08)** — `term3` i `booking_confirmed` sa
+  hårdkodat "5 000 kr" på alla fyra språk. Nu står det bara att säkerhetsdeposition betalas separat och
+  återbetalas efter avsyning; **beloppet visas enbart dynamiskt** i betalningsrutan (och bara när bokningen
+  innehåller båt-tillvalet). Kräver redeploy av Edge-funktionen.
 
 - **Samma-dags-byte tillåtet (2026-09-04)** — tidigare blockerades hela intervallet `check_in`–`check_out`
   *inklusive* utcheckningsdagen ("städdag"), vilket gjorde att två bokningar inte fick dela en enda dag. Det
@@ -131,7 +154,7 @@ Systemet hanterar bokningsförfrågningar från gäster med ett 4-stegs boknings
 | Frontend | React 19 + Vite 8, React Router v7 (single-page med `/` publik + `/admin/*` dashboard) |
 | Backend/DB | Supabase (PostgreSQL 15+ med RLS) |
 | Admin-auth | Supabase Auth (email/password) |
-| E-post | Supabase Edge Function + Loopia SMTP (denomailer) |
+| E-post | Supabase Edge Function + **Resend API** (domänen flightmode.se verifierad, DKIM/SPF) |
 | Hosting | **Vercel** — **auto-deploy vid push till `main`** (GitHub-kopplat sedan 2026-08-07). Root Directory: `booking-frontend`. Custom domän: booking.flightmode.se |
 | Repo | GitHub (glimtz/bokningssystem) |
 
@@ -229,7 +252,8 @@ Bokningssystem/
     │   ├── 004_add_rental_option.sql         # boende Lillstugan (bookings.rental_option + settings)
     │   ├── 005_add_lodge_list_price.sql      # (oanvänd numera — rabatt räknas ut, ej lagrad)
     │   ├── 006_add_guest_id_number.sql       # org.nr/personnr på gäst (guests.id_number)
-    │   └── 007_season_prices.sql             # NYTT pris per säsong (seasons.prices JSONB)
+    │   ├── 007_season_prices.sql             # pris per säsong (seasons.prices JSONB)
+    │   └── 008_email_type_booking_summary.sql # NYTT värde 'booking_summary' i email_type-enumen
     ├── scripts/
     │   └── reset_test_data.sql        # Tömmer bokningar/gäster/mejlloggar inför skarpt läge
     └── functions/
@@ -336,27 +360,34 @@ Följande fixar gjordes direkt i Supabase SQL Editor:
 
 ### 6.5 Edge Function — send-booking-emails
 - Deployad i Supabase
-- **Två sätt att triggas:**
+- **Tre sätt att triggas:**
   1. **Database Webhook** på `bookings` INSERT → skickar `booking_received` (gäst + admin-notis till info@flightmode.se)
   2. **Direkt HTTP-anrop** från admin-UI via `supabase.functions.invoke(...)` med `{event_type, booking_id}` → skickar `booking_confirmed` eller `booking_declined`
+  3. **Bokningssammanställning** från admin-UI: `{event_type: 'booking_summary', booking_id, to, html}` → mejlar utskriftsvyn till valfri adress (2026-09-08)
 - CORS-headers + OPTIONS preflight stödjs (krävs för browser-anrop)
-- Använder Loopia SMTP via denomailer (port 465, TLS)
-- Avsändare: `Vilhelmina Lodge <leif.gyllenberg@glimtz.se>`
+- Använder **Resend API** (`RESEND_API_KEY`). Loopia SMTP/denomailer är utfasat sedan 2026-08-07
+- Avsändare: `Vilhelmina Lodge <info@flightmode.se>`, reply-to info@flightmode.se
+- **`EMAILS_ENABLED`-flagga högst upp i filen** — sätt `false` + redeploy för att stänga av allt utgående
+  mail (t.ex. vid testbokningar). Funktionen svarar OK utan att skicka
+- **Auth:** `booking_summary` kräver inloggad användare (`requireAuthenticatedUser`), eftersom grenen tar
+  emot färdig HTML. `verify_jwt` ensamt räcker inte — anon-nyckeln är också en giltig JWT
 - **Mailtyper som är byggda:**
   - `booking_received` — bekräftelse till gäst + admin-notis. 4 språk (EN/SV/DE/FR)
   - `booking_confirmed` — när admin godkänner. Innehåller betalningsbox (50% bokningsavgift + slutbetalning + deposition), nyckelvillkor (avbokningspolicy etc.), länk till statisk PDF (`/bokningsavtal.pdf`). 4 språk
   - `booking_declined` — när admin nekar. Kort artig text på 4 språk
+  - `booking_summary` — admin mejlar bokningssammanställningen (samma HTML som utskriften) till valfri
+    adress, t.ex. ekonomen. Byggs i admin-UI:t av `buildSummaryHtml()`, inte i Edge-funktionen. Endast
+    svenska (internt dokument). Loggas i `email_log` — **kräver migration 008**
 - **Mailtyper i email_type-enum men ej byggda än:** `payment_request`, `payment_confirmed`, `reminder`, `welcome`, `cancellation` (planerat fas 2)
 - HTML är optimerad för Outlook (använder `<div>` i stället för `<p>`, pixel-baserad `line-height`, `mso-line-height-rule: exactly`)
 - Kontraktslänken visas även som ren text bredvid länken (workaround för iOS Mail, commit f405346)
 
 ### 6.6 Supabase Secrets (satta via CLI)
 ```
-SMTP_HOST = mailcluster.loopia.se
-SMTP_PORT = 465
-SMTP_USER = leif.gyllenberg@glimtz.se
-SMTP_PASS = [lösenord — bör bytas, var exponerat i chatt]
+RESEND_API_KEY = [API-nyckel från Resend]
 ```
+De gamla Loopia-SMTP-secrets (`SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`) används inte längre
+sedan bytet till Resend 2026-08-07 och kan tas bort.
 
 ### 6.7 Database Webhook
 - Name: send-booking-emails
@@ -434,7 +465,7 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 
 ### 8.1 Sidor/routes
 - **`/admin` (Stats)** — Översiktssida: fyra stat-kort (Bokningsförfrågningar, Väntande, Totala intäkter, Bokade nätter), stapeldiagram per månad (inkomna + bokningar per check_in med statusfärger), statusfördelning
-- **`/admin/bookings`** — Lista med filter (status), sök (ref/namn/email), paginering. **"+ Ny bokning"-knapp** uppe till höger som öppnar skapa-modalen (se 8.4). "Öppna"-knapp per rad till detaljvyn
+- **`/admin/bookings`** — Lista med filter (status), sök (ref/namn/email), paginering och **sorterbara kolumnrubriker** (2026-09-08: Referens, Incheckning, Utcheckning, Gäster, Totalt, Status — valet sparas i localStorage). **"+ Ny bokning"-knapp** uppe till höger som öppnar skapa-modalen (se 8.4). "Öppna"-knapp per rad till detaljvyn
 - **`/admin/bookings/:id`** — Detaljvy med full redigering (se 8.3)
 - **`/admin/calendar`** — Årsvy med bokade/blockerade datum. Lägg till/ta bort blockerade datum
 - **`/admin/seasons`** — Hantera säsonger, prisperioder, addon-priser och globala inställningar (deposition, max gäster etc.)
@@ -451,6 +482,10 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 - **Tillval** — lägg till/ändra/ta bort addons på en befintlig bokning (`addBookingAddon` / `updateBookingAddon` / `deleteBookingAddon`), total räknas om (`recalcBookingTotal`)
 - **Justera pris** — sätt manuellt `total_price`/`deposit_amount` med en **anledning** som loggas i `admin_notes` (`updateBookingPrice`)
 - Betalningar, status-knappar, hard delete och adminanteckningar finns kvar sedan tidigare
+- **Skriv ut / Mejla** — `buildSummaryHtml()` bygger en fristående HTML-sammanställning som antingen öppnas
+  i ett nytt fönster för utskrift eller mejlas via `sendBookingSummary()` (2026-09-08). Samma HTML i båda
+  fallen. Innehåller gäst, vistelse, tillval, priser, betalningsstatus, gästmeddelande och **interna
+  anteckningar** — tänk på mottagaren
 
 ### 8.4 Skapa bokning i admin — "+ Ny bokning" (NYTT)
 - `NewBookingModal` i `AdminApp.jsx` — skapa en bokning direkt (gäst, datum, antal gäster, status, tillval)
@@ -461,6 +496,9 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 `createBooking`, `updateBookingDetails`, `updateGuest`, `updateBookingPrice`, `recalcBookingTotal`,
 `addBookingAddon`, `updateBookingAddon`, `deleteBookingAddon`, plus hjälpfunktioner
 `lodgePricePerNight`, `nightsBetween`, `addonRowTotal`.
+
+Tillkommet 2026-09-08: `sendBookingSummary(bookingId, to, html)` samt `getBookings` med
+`sortKey`/`sortDir` och den exporterade vitlistan `BOOKING_SORT_KEYS`.
 
 ### 8.6 Skapa admin-användare
 1. Supabase Dashboard → Authentication → Users → Add user
@@ -494,6 +532,16 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 - [x] **~~Vercel-deploy är manuell~~** — ✅ Löst 2026-08-07: GitHub-kopplat, auto-deploy vid push till main
 - [x] **~~Windows/Git CRLF-brus~~** — ✅ Löst 2026-07-03 via `.gitattributes` (text=auto eol=lf)
 - [ ] **`.env`-filer ligger inte i git** — måste kopieras manuellt vid byte av dator (se 5.3)
+- [ ] **Depositionen ligger på tre ställen** — `settings.deposit_amount` är BARA fallback. Varje säsong har
+  eget `prices.deposit_amount` i `seasons` (JSONB) som **vinner** via `seasonSettings()`, och beloppet fryses
+  per bokning i `bookings.deposit_amount`. Att ändra standardvärdet i admin räcker alltså inte — varje
+  säsongskort måste redigeras, och befintliga bokningar behåller sitt gamla belopp. Dessutom ligger
+  `|| 5000` som hårdkodad fallback på sex ställen i JS-koden
+- [ ] **Disclaimern "deposition 3 000–5 000 SEK" är hårdkodad och dubblerad** — finns både i
+  `src/i18n/{sv,en,de,fr}.js` (rad 104) och som en kopia i `BookingApp.jsx`. Ändrar man på ett ställe glider
+  texterna isär
+- [ ] **Går inte att bygga från Linux-sandbox** — `node_modules` innehåller Windows-binärer (rolldown), så
+  `vite build` failar i Cowork-sessionen. ESLint fungerar. Bygg och testa lokalt på Windows
 
 ## 11. Planerade nästa steg
 
@@ -517,6 +565,13 @@ Byggd som en enkel SPA inuti samma Vite-app, skyddad bakom Supabase Auth.
 16. **Ifylld avtals-PDF** — generera per bokning i Edge Function
 17. **Byt namn på dubbel-003-migrationen** till 004
 18. **Admin-utökningar (ev.):** exportera bokningar till CSV, iCal-feed, email-mall-editor
+19. **Fortnox-integration (ev., utredd 2026-09-08)** — tekniskt möjlig: ny Edge Function `fortnox-sync`,
+    OAuth2 med refresh token i Supabase, `Customer` från `guests` + `Invoice` vid `booking_confirmed` /
+    slutbetalning, `fortnox_customer_id`/`fortnox_invoice_id` som nya kolumner. Kräver **integrationslicens**
+    på Fortnox-kontot (månadskostnad). ⚠️ Säkerhetsdepositionen får inte faktureras som intäkt (skuld till
+    gästen), och momssatserna skiljer sig mellan logi och tillval — stäm av med redovisningskonsult.
+    **Bedömning: inte lönsam vid nuvarande volym.** Tas tidigast efter Stripe, och då hellre som en enkel
+    "Skapa faktura i Fortnox"-knapp än en automatisk synk
 
 ## 12. Språk och preferenser
 

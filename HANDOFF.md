@@ -2,7 +2,7 @@
 
 > Denna fil är en komplett statusrapport för projektet, avsedd att ges till Claude
 > på en ny dator så att vi kan fortsätta arbetet utan att tappa kontext.
-> Senast uppdaterad: 2026-09-08
+> Senast uppdaterad: 2026-10-15
 
 ---
 
@@ -27,9 +27,21 @@ kommer i otakt. Kort checklista (fullständig setup i avsnitt 5):
 
 ---
 
-## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-09-08)
+## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-10-15)
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
+
+- **Rätt mailtyp vid admin-skapad bokning (2026-10-15)** — databas-webhooken på INSERT skickade tidigare
+  alltid `booking_received` ("vi återkommer inom 24 timmar"), även när admin skapade en bokning med status
+  **Bekräftad**. Nu styr statusen: `pending` → `booking_received` (gästens egen förfrågan),
+  `confirmed` → `booking_confirmed` (bekräftelse med betalningsinstruktioner, CC till info@), och alla
+  andra statusar (`paid`, `completed`, `cancelled`, `declined`) ger **inget mail alls** — de är historik
+  eller efterregistrering. **Kräver redeploy av Edge-funktionen.**
+- **Justerbar deposition i "Ny bokning" (2026-10-15)** — depositionen var låst till säsongens/standardens
+  belopp när admin skapade en bokning, trots att rabatt redan gick att sätta. Nu finns ett fält under
+  Totalt: tomt = säsongens standard (följer automatiskt med om datumen byter säsong), ifyllt = eget belopp.
+  Avvikelse loggas i `admin_notes` ("Deposition justerad vid skapandet: 5 000 kr → 3 000 kr"), på samma sätt
+  som rabattnoteringen. Frontend-only.
 
 - **Mejla bokningssammanställningen (2026-09-08)** — bokningsvyn har en **✉ Mejla**-knapp bredvid
   Skriv ut. Dialogen är förifylld med ekonomens adress (`SUMMARY_DEFAULT_RECIPIENT` i `AdminApp.jsx`,
@@ -364,6 +376,9 @@ Följande fixar gjordes direkt i Supabase SQL Editor:
   1. **Database Webhook** på `bookings` INSERT → skickar `booking_received` (gäst + admin-notis till info@flightmode.se)
   2. **Direkt HTTP-anrop** från admin-UI via `supabase.functions.invoke(...)` med `{event_type, booking_id}` → skickar `booking_confirmed` eller `booking_declined`
   3. **Bokningssammanställning** från admin-UI: `{event_type: 'booking_summary', booking_id, to, html}` → mejlar utskriftsvyn till valfri adress (2026-09-08)
+- **INSERT-webhooken väljer mailtyp efter status (2026-10-15):** `pending` → `booking_received`,
+  `confirmed` → `booking_confirmed`, övriga statusar → inget mail. Det gör att bokningar som skapas
+  färdiga i admin inte längre får kvittensmailet för en förfrågan
 - CORS-headers + OPTIONS preflight stödjs (krävs för browser-anrop)
 - Använder **Resend API** (`RESEND_API_KEY`). Loopia SMTP/denomailer är utfasat sedan 2026-08-07
 - Avsändare: `Vilhelmina Lodge <info@flightmode.se>`, reply-to info@flightmode.se

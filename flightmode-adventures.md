@@ -13,8 +13,8 @@
 | **Bolagsform** | Aktiebolag |
 | **Registreringsdatum** | 2025-01-03 |
 | **VD & Ordförande** | Leif Mikael Teodor Gyllenberg |
-| **Adress** | Torsgatan 29, 113 21 Stockholm |
-| **Postadress** | c/o Leif Gyllenberg, Torsgatan 29, 113 21 Stockholm |
+| **Adress** | Mickrum Kvarnholmen 1, 148 95 Muskö |
+| **Postadress** | Mickrum Kvarnholmen 1, 148 95 Muskö |
 | **Aktiekapital** | 25 000 kr |
 | **Status** | Aktiv |
 | **Registrerad för** | Moms, F-skatt, Arbetsgivaravgift |

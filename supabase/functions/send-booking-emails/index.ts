@@ -800,7 +800,29 @@ serve(async (req) => {
 
     // Form 1: Database Webhook (INSERT på bookings)
     //   { type: 'INSERT', table: 'bookings', record: {...}, ... }
+    //
+    // Mailtypen styrs av bokningens status vid skapandet:
+    //   • 'pending'   → booking_received. Gästen har själv skickat in en förfrågan
+    //                   via det publika formuläret och ska få kvittensmailet.
+    //   • 'confirmed' → booking_confirmed. Bokningen är skapad i admin och redan
+    //                   godkänd — då är "vi återkommer inom 24 timmar" fel text.
+    //                   Gästen får bekräftelsen med betalningsinstruktioner direkt
+    //                   (med CC till info@flightmode.se, som vanligt).
+    //   • övriga      → inget mail. En bokning som läggs in som paid/completed/
+    //                   cancelled/declined är historik eller efterregistrering,
+    //                   och ska inte utlösa utskick till gästen.
     if (payload.type === "INSERT" && payload.record) {
+      const status = payload.record.status;
+
+      if (status === "confirmed") {
+        const result = await handleStatusEmail(supabase, "booking_confirmed", payload.record.id);
+        return jsonResponse(result);
+      }
+
+      if (status && status !== "pending") {
+        return jsonResponse({ ok: true, skipped: true, reason: `no email for status '${status}' on insert` });
+      }
+
       const result = await handleBookingReceived(supabase, payload.record);
       return jsonResponse(result);
     }

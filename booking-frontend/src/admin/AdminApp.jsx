@@ -455,6 +455,9 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   const [addonSel, setAddonSel] = useState({})
   // Rabatt på totalpriset (kr)
   const [discountAmount, setDiscountAmount] = useState('')
+  // Deposition (kr). Tomt fält = använd säsongens/standardens belopp, så att
+  // beloppet följer med automatiskt om datumen ändras till en annan säsong.
+  const [depositAmount, setDepositAmount] = useState('')
 
   useEffect(() => {
     (async () => {
@@ -476,7 +479,8 @@ const NewBookingModal = ({ onClose, onCreated }) => {
   const effSettings = api.seasonSettings(settings, season)
   const perNight = api.lodgePricePerNight(numGuests, effSettings, form.rental_option)
   const lodgeTotal = nights > 0 ? perNight * nights : 0
-  const deposit = parseInt(effSettings.deposit_amount) || 5000
+  const defaultDeposit = parseInt(effSettings.deposit_amount) || 5000
+  const deposit = depositAmount.trim() === '' ? defaultDeposit : Math.max(0, parseInt(depositAmount, 10) || 0)
   const formatPrice = (p) => new Intl.NumberFormat('sv-SE').format(p) + ' kr'
   // Städning kostar mindre om man bara hyr Lillstugan (säsongens pris om satt).
   const cleaningPrice = parseInt(effSettings.lillstuga_cleaning_price) || 700
@@ -545,9 +549,14 @@ const NewBookingModal = ({ onClose, onCreated }) => {
           selected_dates: (a.price_type === 'per_day' && sel.dates?.length) ? sel.dates : null,
         }
       })
-      const discountNote = discountNum > 0
-        ? `Rabatt: ${formatPrice(discountNum)} (${discountPct} %) på totalpris (ordinarie ${formatPrice(baseTotal)})`
-        : null
+      const notes = []
+      if (discountNum > 0) {
+        notes.push(`Rabatt: ${formatPrice(discountNum)} (${discountPct} %) på totalpris (ordinarie ${formatPrice(baseTotal)})`)
+      }
+      if (deposit !== defaultDeposit) {
+        notes.push(`Deposition justerad vid skapandet: ${formatPrice(defaultDeposit)} → ${formatPrice(deposit)}`)
+      }
+      const discountNote = notes.length ? notes.join('\n') : null
       const res = await api.createBooking({
         guest: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), id_number: form.id_number.trim() || null, language: form.language, marketing_consent: false },
         booking: { check_in: form.check_in, check_out: form.check_out, num_guests: numGuests, message: form.message || null, status: form.status, admin_notes: discountNote, rental_option: form.rental_option },
@@ -669,7 +678,21 @@ const NewBookingModal = ({ onClose, onCreated }) => {
                 </span>
               </label>
               <div className="detail-row total"><span>Totalt</span><strong>{formatPrice(total)}</strong></div>
-              <div className="detail-row"><span>Deposition</span><strong>{formatPrice(deposit)}</strong></div>
+              <label className="detail-row" style={{ alignItems: 'center' }}>
+                <span>Deposition
+                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>
+                    {depositAmount.trim() === ''
+                      ? `Standard för perioden: ${formatPrice(defaultDeposit)}`
+                      : `Justerad · standard ${formatPrice(defaultDeposit)}`}
+                  </span>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <input type="number" min="0" step="100" value={depositAmount} placeholder={String(defaultDeposit)}
+                    onChange={e => setDepositAmount(e.target.value)}
+                    style={{ width: '110px', textAlign: 'right' }} />
+                  <span style={{ color: 'var(--admin-text-muted)' }}>kr</span>
+                </span>
+              </label>
             </div>
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>

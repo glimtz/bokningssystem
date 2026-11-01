@@ -1221,7 +1221,11 @@ const BookingWizard = () => {
 };
 
 const BookingApp = () => {
-  const [lang, setLang] = useState('en');
+  // Startspråk från ?lang=sv|de|fr|en (länkas från flightmode.se), annars engelska
+  const [lang, setLang] = useState(() => {
+    const p = new URLSearchParams(window.location.search).get('lang');
+    return p && translations[p.toLowerCase()] ? p.toLowerCase() : 'en';
+  });
   return (
     <I18nProvider lang={lang}>
       <BookingProvider>

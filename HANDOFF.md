@@ -27,10 +27,13 @@ kommer i otakt. Kort checklista (fullständig setup i avsnitt 5):
 
 ---
 
-## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-10-15)
+## 0. Vad som är nytt sedan förra uppdateringen (2026-05-14 → 2026-11-01)
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Startspråk via URL (2026-11-01)** — bokningsappen läser `?lang=sv|de|fr|en` och startar på det språket
+  (okänt/saknat värde → engelska). flightmode.se är nu flerspråkig (Polylang Pro: EN original, /sv/, /de/, /fr/)
+  och lodge-sidornas "Boka"-knappar länkar med `?lang=` för respektive språk. Ändringen sitter i `BookingApp.jsx`.
 - **Rätt mailtyp vid admin-skapad bokning (2026-10-15)** — databas-webhooken på INSERT skickade tidigare
   alltid `booking_received` ("vi återkommer inom 24 timmar"), även när admin skapade en bokning med status
   **Bekräftad**. Nu styr statusen: `pending` → `booking_received` (gästens egen förfrågan),

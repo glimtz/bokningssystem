@@ -31,6 +31,10 @@ kommer i otakt. Kort checklista (fullständig setup i avsnitt 5):
 
 Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
 
+- **Fliktitel, favicon och egen domän (2026-11-01)** — fliken hette "booking-frontend" och ikonen var Vites lila standardlogga.
+  Nu: språkberoende titel (t.ex. "Boka din vistelse – Vilhelmina River Lodge") och `<html lang>` sätts i `BookingApp.jsx`,
+  meta-beskrivning i `index.html`, och Flightmode-symbolen som ikon (`public/favicon-32.png`, `icon-192.png`, `apple-touch-icon.png`).
+  `public/favicon.svg` används inte längre. flightmode.se länkar nu till **booking.flightmode.se** i stället för vercel.app.
 - **Startspråk via URL (2026-11-01)** — bokningsappen läser `?lang=sv|de|fr|en` och startar på det språket
   (okänt/saknat värde → engelska). flightmode.se är nu flerspråkig (Polylang Pro: EN original, /sv/, /de/, /fr/)
   och lodge-sidornas "Boka"-knappar länkar med `?lang=` för respektive språk. Ändringen sitter i `BookingApp.jsx`.

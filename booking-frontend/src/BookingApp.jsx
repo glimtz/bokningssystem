@@ -1226,6 +1226,12 @@ const BookingApp = () => {
     const p = new URLSearchParams(window.location.search).get('lang');
     return p && translations[p.toLowerCase()] ? p.toLowerCase() : 'en';
   });
+  // Fliktitel och <html lang> följer valt språk
+  useEffect(() => {
+    const titles = { en: 'Book your stay', sv: 'Boka din vistelse', de: 'Aufenthalt buchen', fr: 'Réserver votre séjour' };
+    document.documentElement.lang = lang;
+    document.title = `${titles[lang] || titles.en} – Vilhelmina River Lodge`;
+  }, [lang]);
   return (
     <I18nProvider lang={lang}>
       <BookingProvider>

@@ -38,6 +38,7 @@ const translations = {
         },
         lillstuga: {
           name: 'The Little Cabin',
+          seasonTag: '(summer season only)',
           description: 'The sleeping cabin with a small kitchen, plus the sauna, relaxation and BBQ areas — you have the whole property to yourselves; the main cabin simply stays closed. Ideal for smaller groups.',
           features: ['Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
         },
@@ -158,6 +159,7 @@ const translations = {
         },
         lillstuga: {
           name: 'Lillstugan',
+          seasonTag: '(endast sommarsäsong)',
           description: 'Sovstuga med ett litet kök, plus bastu, relax och grillplatserna — ni har hela fastigheten för er själva; storstugan står bara stängd. Perfekt för mindre sällskap.',
           features: ['Lillstugan (sovstuga)', 'Bastu & relax', 'Grillkåta & utegrill'],
         },
@@ -278,6 +280,7 @@ const translations = {
         },
         lillstuga: {
           name: 'Die kleine Hütte',
+          seasonTag: '(nur Sommersaison)',
           description: 'Die Schlafhütte mit einer kleinen Küche, samt Sauna, Entspannung und Grillplätzen — Sie haben das gesamte Anwesen für sich allein; die Haupthütte bleibt einfach geschlossen. Ideal für kleinere Gruppen.',
           features: ['Schlafhütte', 'Sauna & Entspannung', 'Grillkota & Außengrill'],
         },
@@ -398,6 +401,7 @@ const translations = {
         },
         lillstuga: {
           name: 'Le petit chalet',
+          seasonTag: '(saison d’été uniquement)',
           description: 'Le chalet de couchage avec une petite cuisine, plus le sauna, la détente et les espaces barbecue — vous avez toute la propriété rien que pour vous ; le chalet principal reste simplement fermé. Idéal pour les petits groupes.',
           features: ['Chalet de couchage', 'Sauna & détente', 'Hutte-barbecue & barbecue ext.'],
         },
@@ -931,7 +935,7 @@ const StepDates = () => {
               <div key={optId} className={`card ${selected ? 'selected' : ''}`}
                 style={disabled ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
                 onClick={() => { if (!disabled) dispatch({ type: 'SET_RENTAL_OPTION', payload: optId }); }}>
-                <div className="card-title">{name}</div>
+                <div className="card-title">{name}{typeof info === 'object' && info.seasonTag && <span style={{ fontWeight: 400, fontSize: '0.85em', color: 'var(--fm-text-muted)' }}> {info.seasonTag}</span>}</div>
                 <div className="card-price">{fmt(opt.pricePerPersonPerNight)} SEK <span>{t('lodge.perPersonPerNight')}</span></div>
                 <div className="lodge-min-price">{t('lodge.minPrice', { price: fmt(opt.minPricePerNight) })}</div>
                 <div className="card-description">{description}</div>

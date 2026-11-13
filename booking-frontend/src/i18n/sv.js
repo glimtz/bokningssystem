@@ -19,7 +19,7 @@ export default {
   },
   dates: {
     title: 'Välj datum',
-    description: 'Välj incheckning, utcheckning och antal gäster. Säsongen är maj\u2013september.',
+    description: 'Välj incheckning, utcheckning och antal gäster.',
     weekdays: ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'],
     months: [
       'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',

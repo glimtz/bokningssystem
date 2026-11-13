@@ -44,6 +44,17 @@ Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
   `confirmed` → `booking_confirmed` (bekräftelse med betalningsinstruktioner, CC till info@), och alla
   andra statusar (`paid`, `completed`, `cancelled`, `declined`) ger **inget mail alls** — de är historik
   eller efterregistrering. **Kräver redeploy av Edge-funktionen.**
+- **Vinter- och sommarsäsong (2026-11-13)** — High/sommar 15 maj–30 sep (hela lodgen eller Lillstugan),
+  Low/vinter 1 okt–14 maj (ENDAST hela lodgen, minpris 2 000 kr/natt). Regeln lagras per säsong som
+  `seasons.prices.lillstuga_available = false` (saknas = tillåten). Gästsidan (`BookingApp.jsx`): Lillstugan-kortet
+  spärras/visar "kan bokas 15 maj – 30 september" när datumen ligger i vintern, och med Lillstugan vald går
+  vinternätter inte att välja i kalendern. Före datumval visas priser från pågående/närmast kommande säsong
+  (`currentOrNextSeason`, tidigare `earliestSeason`). Admin: kryssruta "Lillstugan kan bokas separat" på
+  säsongskortet, varning (ej spärr) i Ny bokning/detaljvy, kalendern visar hela året. **Migration
+  `009_winter_season.sql`** skapar Vinter 2026/27, Sommar 2027, Vinter 2027/28 om de inte överlappar befintliga.
+  Pris för hela vistelsen tas fortfarande från incheckningsdatumets säsong.
+  Steg 1 har en ruta "Säsonger & priser" (sommar/vinter, datum + minpriser) som läses från närmaste
+  sommar- resp. vintersäsong i `seasons` — ändras priserna i admin uppdateras rutan automatiskt.
 - **Justerbar deposition i "Ny bokning" (2026-10-15)** — depositionen var låst till säsongens/standardens
   belopp när admin skapade en bokning, trots att rabatt redan gick att sätta. Nu finns ett fält under
   Totalt: tomt = säsongens standard (följer automatiskt med om datumen byter säsong), ifyllt = eget belopp.

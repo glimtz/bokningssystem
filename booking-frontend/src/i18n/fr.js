@@ -19,7 +19,7 @@ export default {
   },
   dates: {
     title: 'Choisissez vos dates',
-    description: "Sélectionnez les dates d'arrivée et de départ ainsi que le nombre de personnes. La saison s'étend de mai à septembre.",
+    description: "Sélectionnez les dates d'arrivée et de départ ainsi que le nombre de personnes.",
     weekdays: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
     months: [
       'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',

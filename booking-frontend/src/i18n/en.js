@@ -19,7 +19,7 @@ export default {
   },
   dates: {
     title: 'Choose your dates',
-    description: 'Select check-in and check-out dates, and how many guests are coming. The season runs May through September.',
+    description: 'Select check-in and check-out dates, and how many guests are coming.',
     weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     months: [
       'January', 'February', 'March', 'April', 'May', 'June',

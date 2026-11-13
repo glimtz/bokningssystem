@@ -16,9 +16,20 @@ const translations = {
       maxGuests: 'Max {{count}} guests',
       features: ['Main cabin', 'Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
     },
+    seasonInfo: {
+      title: 'Seasons & prices',
+      summer: 'Summer',
+      winter: 'Winter',
+      summerText: 'The whole lodge from {{lodge}} SEK/night, or the Little Cabin from {{lillstuga}} SEK/night.',
+      winterText: 'Whole lodge only, from {{lodge}} SEK/night.',
+      perPerson: '{{price}} SEK per person and night, but never less than the minimum price above.',
+      perPersonInline: '{{price}} SEK per person and night.',
+    },
     rental: {
       title: 'Choose your stay',
       description: 'Book the whole lodge, or just the Little Cabin for smaller groups. Either way, the property is yours alone.',
+      lillstugaOnly: 'Bookable {{from}} – {{to}} (summer season). In winter only the whole lodge is rented out.',
+      lillstugaClosed: 'Not available for the selected dates — in winter only the whole lodge is rented out.',
       options: {
         full_lodge: {
           name: 'The whole lodge',
@@ -34,7 +45,7 @@ const translations = {
     },
     dates: {
       title: 'Choose your dates',
-      description: 'Select check-in and check-out dates, and how many guests are coming. The season runs May through September.',
+      description: 'Select check-in and check-out dates, and how many guests are coming.',
       weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
       checkIn: 'Check-in',
@@ -125,9 +136,20 @@ const translations = {
       maxGuests: 'Max {{count}} gäster',
       features: ['Storstuga', 'Sovstuga', 'Relax & bastu', 'Grillkåta & utegrill'],
     },
+    seasonInfo: {
+      title: 'Säsonger & priser',
+      summer: 'Sommar',
+      winter: 'Vinter',
+      summerText: 'Hela lodgen från {{lodge}} kr/natt, eller Lillstugan från {{lillstuga}} kr/natt.',
+      winterText: 'Endast hela lodgen, från {{lodge}} kr/natt.',
+      perPerson: 'Priset är {{price}} kr per person och natt, men lägst minimipriset ovan.',
+      perPersonInline: '{{price}} kr per person och natt.',
+    },
     rental: {
       title: 'Välj boende',
       description: 'Boka hela lodgen, eller bara Lillstugan för mindre sällskap. Oavsett vilket har ni fastigheten för er själva.',
+      lillstugaOnly: 'Kan bokas {{from}} – {{to}} (sommarsäsong). Vintertid hyrs endast hela lodgen ut.',
+      lillstugaClosed: 'Går inte att boka för valda datum — vintertid hyrs endast hela lodgen ut.',
       options: {
         full_lodge: {
           name: 'Hela lodgen',
@@ -143,7 +165,7 @@ const translations = {
     },
     dates: {
       title: 'Välj datum',
-      description: 'Välj incheckning, utcheckning och antal gäster. Säsongen är maj–september.',
+      description: 'Välj incheckning, utcheckning och antal gäster.',
       weekdays: ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'],
       months: ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'],
       checkIn: 'Incheckning',
@@ -234,9 +256,20 @@ const translations = {
       maxGuests: 'Max. {{count}} Gäste',
       features: ['Haupthütte', 'Schlafhütte', 'Entspannung & Sauna', 'Grillkota & Außengrill'],
     },
+    seasonInfo: {
+      title: 'Saisons & Preise',
+      summer: 'Sommer',
+      winter: 'Winter',
+      summerText: 'Die gesamte Lodge ab {{lodge}} SEK/Nacht oder die kleine Hütte ab {{lillstuga}} SEK/Nacht.',
+      winterText: 'Nur die gesamte Lodge, ab {{lodge}} SEK/Nacht.',
+      perPerson: '{{price}} SEK pro Person und Nacht, mindestens jedoch der oben genannte Mindestpreis.',
+      perPersonInline: '{{price}} SEK pro Person und Nacht.',
+    },
     rental: {
       title: 'Unterkunft wählen',
       description: 'Buchen Sie die ganze Lodge oder nur die kleine Hütte für kleinere Gruppen. In beiden Fällen haben Sie das Anwesen für sich allein.',
+      lillstugaOnly: 'Buchbar {{from}} – {{to}} (Sommersaison). Im Winter wird nur die gesamte Lodge vermietet.',
+      lillstugaClosed: 'Für die gewählten Daten nicht buchbar — im Winter wird nur die gesamte Lodge vermietet.',
       options: {
         full_lodge: {
           name: 'Die ganze Lodge',
@@ -252,7 +285,7 @@ const translations = {
     },
     dates: {
       title: 'Wählen Sie Ihre Daten',
-      description: 'Wählen Sie An- und Abreisedatum sowie die Anzahl der Gäste. Die Saison läuft von Mai bis September.',
+      description: 'Wählen Sie An- und Abreisedatum sowie die Anzahl der Gäste.',
       weekdays: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
       months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
       checkIn: 'Anreise',
@@ -343,9 +376,20 @@ const translations = {
       maxGuests: 'Max. {{count}} personnes',
       features: ['Chalet principal', 'Chalet de couchage', 'Détente & sauna', 'Hutte-barbecue & barbecue ext.'],
     },
+    seasonInfo: {
+      title: 'Saisons & tarifs',
+      summer: 'Été',
+      winter: 'Hiver',
+      summerText: 'Le lodge entier à partir de {{lodge}} SEK/nuit, ou le petit chalet à partir de {{lillstuga}} SEK/nuit.',
+      winterText: 'Uniquement le lodge entier, à partir de {{lodge}} SEK/nuit.',
+      perPerson: '{{price}} SEK par personne et par nuit, avec au minimum le prix plancher ci-dessus.',
+      perPersonInline: '{{price}} SEK par personne et par nuit.',
+    },
     rental: {
       title: 'Choisissez votre séjour',
       description: 'Réservez tout le lodge, ou seulement le petit chalet pour les petits groupes. Dans les deux cas, la propriété est rien que pour vous.',
+      lillstugaOnly: 'Réservable du {{from}} au {{to}} (saison d’été). En hiver, seul le lodge entier est loué.',
+      lillstugaClosed: 'Non disponible pour les dates choisies — en hiver, seul le lodge entier est loué.',
       options: {
         full_lodge: {
           name: 'Tout le lodge',
@@ -361,7 +405,7 @@ const translations = {
     },
     dates: {
       title: 'Choisissez vos dates',
-      description: "Sélectionnez les dates d'arrivée et de départ ainsi que le nombre de personnes. La saison s'étend de mai à septembre.",
+      description: "Sélectionnez les dates d'arrivée et de départ ainsi que le nombre de personnes.",
       weekdays: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
       months: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
       checkIn: 'Arrivée',
@@ -477,6 +521,31 @@ const dateInAnySeason = (seasons, date) => {
 const earliestSeason = (seasons) => {
   if (!seasons || !seasons.length) return null;
   return [...seasons].sort((a, b) => parseSeasonDate(a.start_date) - parseSeasonDate(b.start_date))[0];
+};
+
+// Säsong att visa priser för innan datum valts: pågående säsong, annars närmast kommande.
+const currentOrNextSeason = (seasons, today) => {
+  if (!seasons || !seasons.length) return null;
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return seasonForDate(seasons, t0)
+    || [...seasons].filter(s => parseSeasonDate(s.start_date) > t0).sort((a, b) => parseSeasonDate(a.start_date) - parseSeasonDate(b.start_date))[0]
+    || earliestSeason(seasons);
+};
+
+// Lillstugan kan stängas av per säsong via prices.lillstuga_available = false (t.ex. vintersäsongen,
+// då bara hela lodgen hyrs ut). Saknas flaggan går Lillstugan att boka.
+const lillstugaAllowedIn = (season) => !season || !season.prices || season.prices.lillstuga_available !== false;
+
+// Får natten bokas med valt boende? Hela lodgen: alltid (inom säsong). Lillstugan: bara i säsonger som tillåter den.
+const nightAllowedFor = (seasons, date, rentalOption) =>
+  rentalOption !== 'lillstuga' || !seasons || !seasons.length || lillstugaAllowedIn(seasonForDate(seasons, date));
+
+// Närmaste säsong (som inte redan passerat) där Lillstugan går att boka.
+const nextLillstugaSeason = (seasons, from) => {
+  if (!seasons || !seasons.length) return null;
+  const f = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  return seasons.filter(s => lillstugaAllowedIn(s) && parseSeasonDate(s.end_date) >= f)
+    .sort((a, b) => parseSeasonDate(a.start_date) - parseSeasonDate(b.start_date))[0] || null;
 };
 
 // Slå ihop säsongens priser över globala settings så befintliga helpers automatiskt får rätt belopp.
@@ -686,13 +755,16 @@ const BookingProvider = ({ children }) => {
 
 const StepDates = () => {
   const { state, dispatch } = useBooking();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const today = new Date();
   // Priser tas från säsongen som innehåller incheckningsdatumet; innan datum valts
   // visas närmaste aktiva säsongs priser på boendekorten.
-  const priceSeason = seasonForDate(state.seasons, state.dates.checkIn) || earliestSeason(state.seasons);
+  const priceSeason = seasonForDate(state.seasons, state.dates.checkIn) || currentOrNextSeason(state.seasons, today);
   const effSettings = seasonSettings(state.settings, priceSeason);
-  const lodge = getLodgeConfig(effSettings, state.rentalOption);
+  // Lillstugans priser: från säsongen ovan om den tillåter Lillstugan, annars närmast kommande som gör det.
+  const lsSeason = lillstugaAllowedIn(priceSeason) ? priceSeason : (nextLillstugaSeason(state.seasons, state.dates.checkIn || today) || priceSeason);
+  const lsSettings = seasonSettings(state.settings, lsSeason);
+  const lodge = getLodgeConfig(state.rentalOption === 'lillstuga' ? lsSettings : effSettings, state.rentalOption);
   const initialView = initialCalendarView(state.seasons, today);
   const [viewYear, setViewYear] = useState(initialView.year);
   const [viewMonth, setViewMonth] = useState(initialView.month);
@@ -737,12 +809,15 @@ const StepDates = () => {
   // Otillgänglig dag = bokad natt ELLER manuellt blockerad
   const isUnavailable = (date) => isBookedNight(date) || isBlocked(date);
 
+  // Natten är stängd för valt boende (Lillstugan i en säsong där bara hela lodgen hyrs ut).
+  const isClosedFor = (date) => !nightAllowedFor(state.seasons, date, state.rentalOption);
+
   // Check if a range from checkIn to a candidate checkOut crosses any unavailable night
   const rangeHasConflict = (from, to) => {
     const d = new Date(from);
     d.setDate(d.getDate() + 1); // first night after check-in
     while (d < to) {
-      if (isUnavailable(d)) return true;
+      if (isUnavailable(d) || isClosedFor(d)) return true;
       d.setDate(d.getDate() + 1);
     }
     return false;
@@ -752,7 +827,7 @@ const StepDates = () => {
     const clicked = new Date(viewYear, viewMonth, day);
     if (!checkIn || (checkIn && checkOut)) {
       // Selecting check-in: allowed if the night is not booked
-      if (isUnavailable(clicked)) return;
+      if (isUnavailable(clicked) || isClosedFor(clicked)) return;
       dispatch({ type: 'SET_DATES', payload: { checkIn: clicked, checkOut: null } });
     } else {
       if (clicked > checkIn) {
@@ -760,17 +835,20 @@ const StepDates = () => {
         if (rangeHasConflict(checkIn, clicked)) return;
         dispatch({ type: 'SET_DATES', payload: { checkIn, checkOut: clicked } });
       } else {
-        if (isUnavailable(clicked)) return;
+        if (isUnavailable(clicked) || isClosedFor(clicked)) return;
         dispatch({ type: 'SET_DATES', payload: { checkIn: clicked, checkOut: null } });
       }
     }
   };
 
+  // Stängd dag för valt boende — utom när den är en giltig utcheckningsdag (sista natten ligger före den).
+  const isClosedDay = (date) => isClosedFor(date) && !(checkIn && !checkOut && date > checkIn && !rangeHasConflict(checkIn, date));
+
   const daysInMonth = getDaysInMonth(viewYear, viewMonth), firstDay = getFirstDayOfMonth(viewYear, viewMonth);
   const getDayClass = (day) => {
     const date = new Date(viewYear, viewMonth, day), classes = ['calendar-day'];
     if (isSameDay(date, today)) classes.push('today');
-    if (date < today || !dateInAnySeason(state.seasons, date)) { classes.push('disabled'); return classes.join(' '); }
+    if (date < today || !dateInAnySeason(state.seasons, date) || isClosedDay(date)) { classes.push('disabled'); return classes.join(' '); }
     if (isUnavailable(date)) { classes.push('booked'); return classes.join(' '); }
     if (isSameDay(date, checkIn)) { classes.push('selected'); if (checkOut) classes.push('range-start'); } else if (isSameDay(date, checkOut)) {
       classes.push('selected', 'range-end');
@@ -780,12 +858,62 @@ const StepDates = () => {
 
   const nightCount = checkIn && checkOut ? Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24)) : 0, canProceed = checkIn && checkOut && nightCount > 0;
   const fmt = (n) => new Intl.NumberFormat('sv-SE').format(n);
-  const rentalOptions = getRentalOptions(effSettings);
+  const rentalOptions = { ...getRentalOptions(effSettings), lillstuga: getRentalOptions(lsSettings).lillstuga };
+
+  // Lillstugan spärras om valda nätter ligger i en säsong utan Lillstugan, eller om ingen kommande säsong tillåter den.
+  const datesBlockLillstuga = (() => {
+    if (!checkIn) return false;
+    const end = checkOut || new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate() + 1);
+    const d = new Date(checkIn);
+    while (d < end) { if (!nightAllowedFor(state.seasons, d, 'lillstuga')) return true; d.setDate(d.getDate() + 1); }
+    return false;
+  })();
+  const lillstugaDisabled = datesBlockLillstuga || (!lillstugaAllowedIn(priceSeason) && !nextLillstugaSeason(state.seasons, today));
+  useEffect(() => {
+    if (lillstugaDisabled && state.rentalOption === 'lillstuga') dispatch({ type: 'SET_RENTAL_OPTION', payload: 'full_lodge' });
+  }, [lillstugaDisabled, state.rentalOption, dispatch]);
+  const seasonDateFmt = new Intl.DateTimeFormat({ sv: 'sv-SE', en: 'en-GB', de: 'de-DE', fr: 'fr-FR' }[lang] || 'en-GB', { day: 'numeric', month: 'long' });
+  // ── Rutan "Säsonger & priser": närmaste sommar (Lillstugan tillåten) och närmaste vinter (endast hela lodgen) ──
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const summerSeason = nextLillstugaSeason(state.seasons, today);
+  const winterSeason = (state.seasons || []).filter(s => !lillstugaAllowedIn(s) && parseSeasonDate(s.end_date) >= todayStart)
+    .sort((a, b) => parseSeasonDate(a.start_date) - parseSeasonDate(b.start_date))[0] || null;
+  const infoRows = [
+    summerSeason && { key: 'summer', season: summerSeason, o: getRentalOptions(seasonSettings(state.settings, summerSeason)) },
+    winterSeason && { key: 'winter', season: winterSeason, o: getRentalOptions(seasonSettings(state.settings, winterSeason)) },
+  ].filter(Boolean).sort((a, b) => parseSeasonDate(a.season.start_date) - parseSeasonDate(b.season.start_date));
+  const samePerPerson = infoRows.length > 0 && infoRows.every(r => r.o.full_lodge.pricePerPersonPerNight === infoRows[0].o.full_lodge.pricePerPersonPerNight);
+  const fmtSeasonRange = (season) => `${seasonDateFmt.format(parseSeasonDate(season.start_date))} – ${seasonDateFmt.format(parseSeasonDate(season.end_date))}`;
+
+  const lillstugaNote = lillstugaDisabled
+    ? t('rental.lillstugaClosed')
+    : (!lillstugaAllowedIn(priceSeason) && lsSeason && lsSeason !== priceSeason)
+      ? t('rental.lillstugaOnly', { from: seasonDateFmt.format(parseSeasonDate(lsSeason.start_date)), to: seasonDateFmt.format(parseSeasonDate(lsSeason.end_date)) })
+      : null;
 
   return (
     <div>
       <h2 className="step-title">{t('dates.title')}</h2>
       <p className="step-description">{t('dates.description')}</p>
+      {infoRows.length > 0 && (
+        <div style={{ border: '1px solid var(--fm-border)', background: 'var(--fm-orange-light)', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.5rem' }}>
+          <h3 className="rental-select-title" style={{ marginTop: 0, marginBottom: '0.5rem' }}>{t('seasonInfo.title')}</h3>
+          {infoRows.map(r => (
+            <p key={r.key} style={{ margin: '0.35rem 0', fontSize: '0.95rem' }}>
+              <strong>{t(`seasonInfo.${r.key}`)} {fmtSeasonRange(r.season)}:</strong>{' '}
+              {r.key === 'summer'
+                ? t('seasonInfo.summerText', { lodge: fmt(r.o.full_lodge.minPricePerNight), lillstuga: fmt(r.o.lillstuga.minPricePerNight) })
+                : t('seasonInfo.winterText', { lodge: fmt(r.o.full_lodge.minPricePerNight) })}
+              {!samePerPerson && <> {t('seasonInfo.perPersonInline', { price: fmt(r.o.full_lodge.pricePerPersonPerNight) })}</>}
+            </p>
+          ))}
+          {samePerPerson && (
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: 'var(--fm-text-muted)' }}>
+              {t('seasonInfo.perPerson', { price: fmt(infoRows[0].o.full_lodge.pricePerPersonPerNight) })}
+            </p>
+          )}
+        </div>
+      )}
       <div className="rental-select">
         <h3 className="rental-select-title">{t('rental.title')}</h3>
         <p className="rental-select-desc">{t('rental.description')}</p>
@@ -797,12 +925,17 @@ const StepDates = () => {
             const description = typeof info === 'object' ? info.description : '';
             const feats = (typeof info === 'object' && Array.isArray(info.features)) ? info.features : [];
             const selected = state.rentalOption === optId;
+            const disabled = optId === 'lillstuga' && lillstugaDisabled;
+            const note = optId === 'lillstuga' ? lillstugaNote : null;
             return (
-              <div key={optId} className={`card ${selected ? 'selected' : ''}`} onClick={() => dispatch({ type: 'SET_RENTAL_OPTION', payload: optId })}>
+              <div key={optId} className={`card ${selected ? 'selected' : ''}`}
+                style={disabled ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+                onClick={() => { if (!disabled) dispatch({ type: 'SET_RENTAL_OPTION', payload: optId }); }}>
                 <div className="card-title">{name}</div>
                 <div className="card-price">{fmt(opt.pricePerPersonPerNight)} SEK <span>{t('lodge.perPersonPerNight')}</span></div>
                 <div className="lodge-min-price">{t('lodge.minPrice', { price: fmt(opt.minPricePerNight) })}</div>
                 <div className="card-description">{description}</div>
+                {note && <div className="card-description" style={{ color: 'var(--fm-orange)', fontWeight: 500 }}>{note}</div>}
                 <span className="lodge-max">{t('lodge.maxGuests', { count: opt.maxGuests })}</span>
                 <div className="card-highlights">
                   {feats.map((f) => (
@@ -833,7 +966,7 @@ const StepDates = () => {
           {Array.from({ length: firstDay }).map((_, i) => (<div key={`empty-${i}`} className="calendar-day empty" />))}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1, date = new Date(viewYear, viewMonth, day);
-            const isOutOfSeason = date < today || !dateInAnySeason(state.seasons, date);
+            const isOutOfSeason = date < today || !dateInAnySeason(state.seasons, date) || isClosedDay(date);
             const isBooked = isUnavailable(date);
             // En upptagen natt kan ändå väljas som UTCHECKNINGSDAG (avresa på morgonen,
             // nästa gäst checkar in samma eftermiddag) om nätterna innan är lediga.

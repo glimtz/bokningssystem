@@ -334,6 +334,11 @@ export function seasonSettings(base, season) {
   return merged
 }
 
+// Kan Lillstugan bokas separat i säsongen? prices.lillstuga_available = false (t.ex. vinter) = bara hela lodgen.
+export function seasonAllowsLillstuga(season) {
+  return !season || !season.prices || season.prices.lillstuga_available !== false
+}
+
 // Tillvalspris för en säsong (per slug), annars addonens globala pris.
 export function seasonAddonPrice(season, addon) {
   const ap = season && season.prices && season.prices.addons

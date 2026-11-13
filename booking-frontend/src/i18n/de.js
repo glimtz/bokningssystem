@@ -19,7 +19,7 @@ export default {
   },
   dates: {
     title: 'Wählen Sie Ihre Daten',
-    description: 'Wählen Sie An- und Abreisedatum sowie die Anzahl der Gäste. Die Saison läuft von Mai bis September.',
+    description: 'Wählen Sie An- und Abreisedatum sowie die Anzahl der Gäste.',
     weekdays: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
     months: [
       'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',

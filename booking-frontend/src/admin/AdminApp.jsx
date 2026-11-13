@@ -609,6 +609,9 @@ const NewBookingModal = ({ onClose, onCreated }) => {
                 }}>
                 {rentalOptionChoices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select></label>
+            {form.rental_option === 'lillstuga' && season && !api.seasonAllowsLillstuga(season) && (
+              <p style={{ fontSize: '0.8rem', color: '#b45309', margin: '0.25rem 0 0.5rem 0' }}>⚠️ {season.name} hyr normalt bara ut hela lodgen. Du kan ändå spara som undantag.</p>
+            )}
             <label className="detail-row" style={{ alignItems: 'center' }}><span>Gäster</span>
               <input type="number" min="1" max={api.maxGuestsFor(settings, form.rental_option)} value={form.num_guests}
                 onChange={e => setForm(f => ({ ...f, num_guests: e.target.value }))} style={{ width: '80px', textAlign: 'right' }} /></label>
@@ -1499,6 +1502,12 @@ const BookingDetailPage = () => {
                   {rentalOptionChoices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
+              {(() => {
+                const s = api.seasonForDate(seasons, detailsForm.check_in)
+                return detailsForm.rental_option === 'lillstuga' && s && !api.seasonAllowsLillstuga(s)
+                  ? <p style={{ fontSize: '0.8rem', color: '#b45309', margin: '0.25rem 0 0.5rem 0' }}>⚠️ {s.name} hyr normalt bara ut hela lodgen. Du kan ändå spara som undantag.</p>
+                  : null
+              })()}
               <label className="detail-row" style={{ alignItems: 'center' }}>
                 <span>Gäster</span>
                 <input type="number" min="1" max={api.maxGuestsFor(settings, detailsForm.rental_option)} value={detailsForm.num_guests}
@@ -1881,8 +1890,8 @@ const CalendarPage = () => {
   const monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December']
   const weekdays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
 
-  // Show May-September (the lodge season)
-  const seasonMonths = [4, 5, 6, 7, 8]
+  // Hela året — lodgen har sommar- (jun–sep) och vintersäsong (okt–maj)
+  const seasonMonths = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
   const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate()
   const getFirstDayOfMonth = (y, m) => { const d = new Date(y, m, 1).getDay(); return d === 0 ? 6 : d - 1 }
@@ -2186,6 +2195,7 @@ const SeasonsPage = () => {
       lillstuga_min_price_per_night: p.lillstuga_min_price_per_night != null ? p.lillstuga_min_price_per_night : numOr(settings.lillstuga_min_price_per_night, 2000),
       deposit_amount: p.deposit_amount != null ? p.deposit_amount : numOr(settings.deposit_amount, 5000),
       lillstuga_cleaning_price: p.lillstuga_cleaning_price != null ? p.lillstuga_cleaning_price : numOr(settings.lillstuga_cleaning_price, 700),
+      lillstuga_available: p.lillstuga_available !== false,
       addons: Object.fromEntries((addons || []).map(a => [a.slug, (p.addons && p.addons[a.slug] != null) ? p.addons[a.slug] : a.price])),
     }
   }
@@ -2205,6 +2215,7 @@ const SeasonsPage = () => {
         lillstuga_min_price_per_night: parseInt(p.lillstuga_min_price_per_night) || 0,
         deposit_amount: parseInt(p.deposit_amount) || 0,
         lillstuga_cleaning_price: parseInt(p.lillstuga_cleaning_price) || 0,
+        lillstuga_available: p.lillstuga_available !== false,
         addons: Object.fromEntries(Object.entries(p.addons || {}).map(([k, v]) => [k, parseInt(v) || 0])),
       }
       await api.updateSeason(editingSeason.id, { start_date: editingSeason.start_date, end_date: editingSeason.end_date, prices })
@@ -2284,6 +2295,11 @@ const SeasonsPage = () => {
               <div className="detail-row" style={{ alignItems: 'center' }}><span>Startdatum</span><input type="date" value={editingSeason.start_date} onChange={e => setEditingSeason(s => ({ ...s, start_date: e.target.value }))} /></div>
               <div className="detail-row" style={{ alignItems: 'center' }}><span>Slutdatum</span><input type="date" value={editingSeason.end_date} onChange={e => setEditingSeason(s => ({ ...s, end_date: e.target.value }))} /></div>
               <h5 style={{ margin: '0.75rem 0 0.25rem' }}>Lodge &amp; deposition</h5>
+              <label className="detail-row" style={{ alignItems: 'center', cursor: 'pointer' }}>
+                <span>Lillstugan kan bokas separat <small style={{ color: 'var(--admin-text-muted)' }}>(av = bara hela lodgen, t.ex. vinter)</small></span>
+                <input type="checkbox" checked={editingSeason.prices.lillstuga_available !== false}
+                  onChange={e => setEditingSeason(s => ({ ...s, prices: { ...s.prices, lillstuga_available: e.target.checked } }))} />
+              </label>
               {[
                 ['price_per_person_per_night', 'Pris per person/natt'],
                 ['min_price_per_night', 'Minpris/natt – hela lodgen'],
@@ -2317,7 +2333,7 @@ const SeasonsPage = () => {
               return (
                 <div style={{ margin: '0.5rem 0 0.25rem', fontSize: '0.9rem', color: 'var(--admin-text-muted)' }}>
                   <strong style={{ color: 'inherit' }}>Säsongspriser{isDefault ? ' (globala – ej satta för säsongen)' : ''}:</strong>{' '}
-                  {fmtKr(d.price_per_person_per_night)}/pers · lodge från {fmtKr(d.min_price_per_night)} · Lillstugan från {fmtKr(d.lillstuga_min_price_per_night)} · deposition {fmtKr(d.deposit_amount)}
+                  {fmtKr(d.price_per_person_per_night)}/pers · lodge från {fmtKr(d.min_price_per_night)} · {d.lillstuga_available ? <>Lillstugan från {fmtKr(d.lillstuga_min_price_per_night)}</> : 'endast hela lodgen'} · deposition {fmtKr(d.deposit_amount)}
                 </div>
               )
             })()

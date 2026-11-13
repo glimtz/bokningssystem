@@ -13,6 +13,7 @@ const translations = {
       description: 'Exclusive lodge by the Vojmån river, north of Vilhelmina. The lodge includes a main cabin, a sleeping cabin, a relaxation & sauna cabin, a grill hut and an outdoor BBQ area.',
       perPersonPerNight: 'per person / night',
       minPrice: 'Minimum {{price}} SEK per night',
+      minPriceSeasons: 'Minimum {{winter}} SEK (winter) / {{summer}} SEK (summer) per night',
       maxGuests: 'Max {{count}} guests',
       features: ['Main cabin', 'Sleeping cabin', 'Sauna & relaxation', 'Grill hut & outdoor BBQ'],
     },
@@ -134,6 +135,7 @@ const translations = {
       description: 'Exklusiv lodge vid Vojmån, norr om Vilhelmina. Lodgen består av en storstuga, en sovstuga, en relax- och bastustuga samt en grillkåta och en utegrillplats.',
       perPersonPerNight: 'per person / natt',
       minPrice: 'Minimum {{price}} SEK per natt',
+      minPriceSeasons: 'Minimum {{winter}} SEK (vinter) / {{summer}} SEK (sommar) per natt',
       maxGuests: 'Max {{count}} gäster',
       features: ['Storstuga', 'Sovstuga', 'Relax & bastu', 'Grillkåta & utegrill'],
     },
@@ -255,6 +257,7 @@ const translations = {
       description: 'Exklusive Lodge am Fluss Vojmån, nördlich von Vilhelmina. Die Lodge umfasst eine Haupthütte, eine Schlafhütte, eine Entspannungs- & Saunahütte sowie eine Grillkota und einen Außengrillplatz.',
       perPersonPerNight: 'pro Person / Nacht',
       minPrice: 'Mindestpreis {{price}} SEK pro Nacht',
+      minPriceSeasons: 'Mindestpreis {{winter}} SEK (Winter) / {{summer}} SEK (Sommer) pro Nacht',
       maxGuests: 'Max. {{count}} Gäste',
       features: ['Haupthütte', 'Schlafhütte', 'Entspannung & Sauna', 'Grillkota & Außengrill'],
     },
@@ -376,6 +379,7 @@ const translations = {
       description: 'Lodge exclusive au bord de la rivière Vojmån, au nord de Vilhelmina. Le lodge comprend un chalet principal, un chalet de couchage, un chalet détente & sauna, une hutte-barbecue et un espace barbecue extérieur.',
       perPersonPerNight: 'par personne / nuit',
       minPrice: 'Minimum {{price}} SEK par nuit',
+      minPriceSeasons: 'Minimum {{winter}} SEK (hiver) / {{summer}} SEK (été) par nuit',
       maxGuests: 'Max. {{count}} personnes',
       features: ['Chalet principal', 'Chalet de couchage', 'Détente & sauna', 'Hutte-barbecue & barbecue ext.'],
     },
@@ -937,7 +941,14 @@ const StepDates = () => {
                 onClick={() => { if (!disabled) dispatch({ type: 'SET_RENTAL_OPTION', payload: optId }); }}>
                 <div className="card-title">{name}{typeof info === 'object' && info.seasonTag && <span style={{ fontWeight: 400, fontSize: '0.85em', color: 'var(--fm-text-muted)' }}> {info.seasonTag}</span>}</div>
                 <div className="card-price">{fmt(opt.pricePerPersonPerNight)} SEK <span>{t('lodge.perPersonPerNight')}</span></div>
-                <div className="lodge-min-price">{t('lodge.minPrice', { price: fmt(opt.minPricePerNight) })}</div>
+                <div className="lodge-min-price">{(() => {
+                  // Hela lodgen innan datum valts: visa både vinter- och sommarpris om de skiljer sig.
+                  const w = infoRows.find(r => r.key === 'winter'), su = infoRows.find(r => r.key === 'summer');
+                  if (optId === 'full_lodge' && !checkIn && w && su && w.o.full_lodge.minPricePerNight !== su.o.full_lodge.minPricePerNight) {
+                    return t('lodge.minPriceSeasons', { winter: fmt(w.o.full_lodge.minPricePerNight), summer: fmt(su.o.full_lodge.minPricePerNight) });
+                  }
+                  return t('lodge.minPrice', { price: fmt(opt.minPricePerNight) });
+                })()}</div>
                 <div className="card-description">{description}</div>
                 {note && <div className="card-description" style={{ color: 'var(--fm-orange)', fontWeight: 500 }}>{note}</div>}
                 <span className="lodge-max">{t('lodge.maxGuests', { count: opt.maxGuests })}</span>

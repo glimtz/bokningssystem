@@ -44,6 +44,12 @@ Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
   `confirmed` → `booking_confirmed` (bekräftelse med betalningsinstruktioner, CC till info@), och alla
   andra statusar (`paid`, `completed`, `cancelled`, `declined`) ger **inget mail alls** — de är historik
   eller efterregistrering. **Kräver redeploy av Edge-funktionen.**
+- **Översikt per år (2026-11-20)** — admin Översikt har en årsväljare (standard 2027, därefter innevarande år).
+  Nyckeltal, statusfördelning och "Bokningar per vistelsemånad" räknas på vistelseår (`check_in`);
+  "Inkomna bokningsförfrågningar per månad" på `created_at`. Ändringen sitter i `StatsPage` i `AdminApp.jsx`.
+- **Vintersäsong till 31 maj (2026-11-20)** — Vinter 1 okt–31 maj, Sommar 1 juni–30 sep.
+  **Migration `010_winter_until_may_31.sql`** flyttar befintliga säsongers 14/15 maj-gräns. Gästsidans texter
+  läser datumen från `seasons`, så ingen kodändring behövs. (Datumen i stycket nedan är de ursprungliga.)
 - **Vinter- och sommarsäsong (2026-11-13)** — High/sommar 15 maj–30 sep (hela lodgen eller Lillstugan),
   Low/vinter 1 okt–14 maj (ENDAST hela lodgen, minpris 2 000 kr/natt). Regeln lagras per säsong som
   `seasons.prices.lillstuga_available = false` (saknas = tillåten). Gästsidan (`BookingApp.jsx`): Lillstugan-kortet

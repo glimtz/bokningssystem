@@ -201,10 +201,14 @@ const AdminLayout = () => {
 // STATS PAGE (Översikt)
 // ============================================================
 
+// Standardår i Översikt. Blir automatiskt innevarande år när det passerat 2027.
+const DEFAULT_OVERVIEW_YEAR = 2027
+
 const StatsPage = () => {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [year, setYear] = useState(() => Math.max(DEFAULT_OVERVIEW_YEAR, new Date().getFullYear()))
 
   useEffect(() => {
     api.getStats()
@@ -234,14 +238,38 @@ const StatsPage = () => {
     declined: '#8A501E',
   }
 
+  // Valbara år: alla år som förekommer i bokningarna (vistelse eller inkommen) + standardåret.
+  const yearOptions = useMemo(() => {
+    const set = new Set([year, DEFAULT_OVERVIEW_YEAR, new Date().getFullYear()])
+    ;(stats?.bookings || []).forEach(b => {
+      if (b.check_in) set.add(new Date(b.check_in).getFullYear())
+      if (b.created_at) set.add(new Date(b.created_at).getFullYear())
+    })
+    return [...set].filter(Boolean).sort((a, b) => b - a)
+  }, [stats, year])
+
+  // Nyckeltal för valt år — räknas på vistelseår (check_in)
+  const yearStats = useMemo(() => {
+    const out = { total: 0, byStatus: {}, revenue: 0, nights: 0 }
+    ;(stats?.bookings || []).forEach(b => {
+      if (!b.check_in || new Date(b.check_in).getFullYear() !== year) return
+      out.total++
+      out.byStatus[b.status] = (out.byStatus[b.status] || 0) + 1
+      if (['confirmed', 'paid', 'completed'].includes(b.status)) {
+        out.revenue += b.total_price || 0
+        out.nights += Math.round((new Date(b.check_out) - new Date(b.check_in)) / (1000 * 60 * 60 * 24))
+      }
+    })
+    return out
+  }, [stats, year])
+
   // Monthly bookings chart data — must be before any early returns (React hooks rule)
   const monthlyData = useMemo(() => {
     if (!stats) return Array.from({ length: 12 }, (_, i) => ({ month: i, count: 0, revenue: 0 }))
     const months = Array.from({ length: 12 }, (_, i) => ({ month: i, count: 0, revenue: 0 }))
-    const currentYear = new Date().getFullYear()
     ;(stats.bookings || []).forEach(b => {
       const d = new Date(b.created_at)
-      if (d.getFullYear() === currentYear) {
+      if (d.getFullYear() === year) {
         months[d.getMonth()].count++
         if (['confirmed', 'paid', 'completed'].includes(b.status)) {
           months[d.getMonth()].revenue += b.total_price || 0
@@ -249,7 +277,7 @@ const StatsPage = () => {
       }
     })
     return months
-  }, [stats])
+  }, [stats, year])
 
   const maxCount = Math.max(...monthlyData.map(m => m.count), 1)
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
@@ -258,16 +286,15 @@ const StatsPage = () => {
   const monthlyByStay = useMemo(() => {
     const months = Array.from({ length: 12 }, (_, i) => ({ month: i, confirmed: 0, paid: 0, completed: 0 }))
     if (!stats) return months
-    const currentYear = new Date().getFullYear()
     ;(stats.bookings || []).forEach(b => {
       if (!['confirmed', 'paid', 'completed'].includes(b.status)) return
       const d = new Date(b.check_in)
-      if (d.getFullYear() === currentYear) {
+      if (d.getFullYear() === year) {
         months[d.getMonth()][b.status]++
       }
     })
     return months
-  }, [stats])
+  }, [stats, year])
 
   const maxStayCount = Math.max(...monthlyByStay.map(m => m.confirmed + m.paid + m.completed), 1)
 
@@ -277,29 +304,37 @@ const StatsPage = () => {
 
   return (
     <div>
-      <h1 className="admin-page-title">Översikt</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        <h1 className="admin-page-title">Översikt</h1>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+          År
+          <select value={year} onChange={e => setYear(Number(e.target.value))}>
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </label>
+      </div>
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-value">{stats.thisYearBookings}</div>
-          <div className="stat-label">Bokningsförfrågningar {new Date().getFullYear()}</div>
+          <div className="stat-value">{yearStats.total}</div>
+          <div className="stat-label">Bokningsförfrågningar {year}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.byStatus.pending || 0}</div>
+          <div className="stat-value">{yearStats.byStatus.pending || 0}</div>
           <div className="stat-label">Väntande</div>
         </div>
         <div className="stat-card accent">
-          <div className="stat-value">{new Intl.NumberFormat('sv-SE').format(stats.totalRevenue)} kr</div>
-          <div className="stat-label">Totala intäkter</div>
+          <div className="stat-value">{new Intl.NumberFormat('sv-SE').format(yearStats.revenue)} kr</div>
+          <div className="stat-label">Intäkter {year}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.totalNights}</div>
-          <div className="stat-label">Bokade nätter</div>
+          <div className="stat-value">{yearStats.nights}</div>
+          <div className="stat-label">Bokade nätter {year}</div>
         </div>
       </div>
 
       <div className="admin-section">
-        <h2 className="admin-section-title">Inkomna bokningsförfrågningar per månad ({new Date().getFullYear()})</h2>
+        <h2 className="admin-section-title">Inkomna bokningsförfrågningar per månad ({year})</h2>
         <div className="chart-bar-container">
           {monthlyData.map((m, i) => (
             <div key={i} className="chart-bar-col">
@@ -312,11 +347,11 @@ const StatsPage = () => {
       </div>
 
       <div className="admin-section">
-        <h2 className="admin-section-title">Status fördelning</h2>
+        <h2 className="admin-section-title">Status fördelning ({year})</h2>
         <div className="status-breakdown">
           {Object.entries(statusLabels).map(([key, label]) => {
-            const count = stats.byStatus[key] || 0
-            const pct = stats.totalBookings > 0 ? Math.round((count / stats.totalBookings) * 100) : 0
+            const count = yearStats.byStatus[key] || 0
+            const pct = yearStats.total > 0 ? Math.round((count / yearStats.total) * 100) : 0
             return (
               <div key={key} className="status-row">
                 <div className="status-row-label">
@@ -334,7 +369,7 @@ const StatsPage = () => {
       </div>
 
       <div className="admin-section">
-        <h2 className="admin-section-title">Bokningar per månad ({new Date().getFullYear()})</h2>
+        <h2 className="admin-section-title">Bokningar per vistelsemånad ({year})</h2>
         <div className="chart-bar-container">
           {monthlyByStay.map((m, i) => {
             const total = m.confirmed + m.paid + m.completed

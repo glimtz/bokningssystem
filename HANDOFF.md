@@ -46,7 +46,7 @@ Kort sammanfattning av allt som hänt sedan handoffen senast skrevs:
   eller efterregistrering. **Kräver redeploy av Edge-funktionen.**
 - **Översikt per år (2026-11-20)** — admin Översikt har en årsväljare (standard 2027, därefter innevarande år).
   Nyckeltal, statusfördelning och "Bokningar per vistelsemånad" räknas på vistelseår (`check_in`);
-  "Inkomna bokningsförfrågningar per månad" på `created_at`. Ändringen sitter i `StatsPage` i `AdminApp.jsx`.
+  även förfrågningsdiagrammet (alla statusar). Vistelsediagrammet visar även Väntande (orange). Ändringen sitter i `StatsPage` i `AdminApp.jsx`.
 - **Vintersäsong till 31 maj (2026-11-20)** — Vinter 1 okt–31 maj, Sommar 1 juni–30 sep.
   **Migration `010_winter_until_may_31.sql`** flyttar befintliga säsongers 14/15 maj-gräns. Gästsidans texter
   läser datumen från `seasons`, så ingen kodändring behövs. (Datumen i stycket nedan är de ursprungliga.)

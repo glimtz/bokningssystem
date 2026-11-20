@@ -268,7 +268,8 @@ const StatsPage = () => {
     if (!stats) return Array.from({ length: 12 }, (_, i) => ({ month: i, count: 0, revenue: 0 }))
     const months = Array.from({ length: 12 }, (_, i) => ({ month: i, count: 0, revenue: 0 }))
     ;(stats.bookings || []).forEach(b => {
-      const d = new Date(b.created_at)
+      if (!b.check_in) return
+      const d = new Date(b.check_in)
       if (d.getFullYear() === year) {
         months[d.getMonth()].count++
         if (['confirmed', 'paid', 'completed'].includes(b.status)) {
@@ -284,10 +285,10 @@ const StatsPage = () => {
 
   // Bokningar per vistelsemånad (check_in), uppdelat per status
   const monthlyByStay = useMemo(() => {
-    const months = Array.from({ length: 12 }, (_, i) => ({ month: i, confirmed: 0, paid: 0, completed: 0 }))
+    const months = Array.from({ length: 12 }, (_, i) => ({ month: i, pending: 0, confirmed: 0, paid: 0, completed: 0 }))
     if (!stats) return months
     ;(stats.bookings || []).forEach(b => {
-      if (!['confirmed', 'paid', 'completed'].includes(b.status)) return
+      if (!['pending', 'confirmed', 'paid', 'completed'].includes(b.status)) return
       const d = new Date(b.check_in)
       if (d.getFullYear() === year) {
         months[d.getMonth()][b.status]++
@@ -296,7 +297,7 @@ const StatsPage = () => {
     return months
   }, [stats, year])
 
-  const maxStayCount = Math.max(...monthlyByStay.map(m => m.confirmed + m.paid + m.completed), 1)
+  const maxStayCount = Math.max(...monthlyByStay.map(m => m.pending + m.confirmed + m.paid + m.completed), 1)
 
   if (loading) return <div className="admin-loading">Laddar statistik...</div>
   if (error) return <div className="admin-error">Fel: {error}</div>
@@ -334,7 +335,7 @@ const StatsPage = () => {
       </div>
 
       <div className="admin-section">
-        <h2 className="admin-section-title">Inkomna bokningsförfrågningar per månad ({year})</h2>
+        <h2 className="admin-section-title">Bokningsförfrågningar per vistelsemånad ({year}) — alla statusar</h2>
         <div className="chart-bar-container">
           {monthlyData.map((m, i) => (
             <div key={i} className="chart-bar-col">
@@ -372,7 +373,7 @@ const StatsPage = () => {
         <h2 className="admin-section-title">Bokningar per vistelsemånad ({year})</h2>
         <div className="chart-bar-container">
           {monthlyByStay.map((m, i) => {
-            const total = m.confirmed + m.paid + m.completed
+            const total = m.pending + m.confirmed + m.paid + m.completed
             const heightPx = (total / maxStayCount) * 120
             return (
               <div key={i} className="chart-bar-col">
@@ -387,6 +388,9 @@ const StatsPage = () => {
                     overflow: 'hidden',
                   }}
                 >
+                  {m.pending > 0 && (
+                    <div style={{ flexGrow: m.pending, background: statusColors.pending }} />
+                  )}
                   {m.confirmed > 0 && (
                     <div style={{ flexGrow: m.confirmed, background: statusColors.confirmed }} />
                   )}
@@ -403,6 +407,10 @@ const StatsPage = () => {
           })}
         </div>
         <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginTop: '0.75rem', fontSize: '0.85rem' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: statusColors.pending }} />
+            Väntande
+          </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: statusColors.confirmed }} />
             Bekräftade
